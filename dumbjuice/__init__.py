@@ -192,7 +192,16 @@ $Shortcut.TargetPath = $targetPath
 $Shortcut.Arguments = $arguments
 $Shortcut.WorkingDirectory = $programAppFolder
 $Shortcut.IconLocation = $iconFile  # Set the icon location for the shortcut
+$Shortcut.WindowStyle = 1
 $Shortcut.Save()
+
+# Copy the shortcut to the Desktop
+$desktopPath = [System.Environment]::GetFolderPath('Desktop')
+$desktopShortcutPath = "$desktopPath\$programName.lnk"
+
+Write-Output "Copying shortcut to Desktop..."
+Copy-Item -Path $shortcutPath -Destination $desktopShortcutPath
+Write-Output "Shortcut copied to Desktop."
 
 Write-Output "Installation complete. Use the shortcut to run $programName!"
 
