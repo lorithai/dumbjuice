@@ -39,7 +39,8 @@ def is_python_version_available(python_version):
 def build(target_folder=None):
     if target_folder is None:
         target_folder = os.getcwd()
-    
+
+
     config_path = os.path.join(target_folder,"dumbjuice.conf")
 
     try:
@@ -47,8 +48,7 @@ def build(target_folder=None):
             config = json.load(f)
     except (FileNotFoundError, json.JSONDecodeError):
         print("Error: Invalid or missing dumbjuice.conf file.")
-        sys.exit(1)  # Exit the script
-
+        sys.exit(1)
 
     required_keys = ["program_name", "python_version"]
     missing_keys = [key for key in required_keys if key not in config or not config[key]]
@@ -63,9 +63,7 @@ def build(target_folder=None):
         gui = config["gui"]
     else:
         gui = False
-        
-
-
+         
     if gui:
         python_executable = "pythonw"
     else:
@@ -77,15 +75,17 @@ def build(target_folder=None):
     
     dumbjuice_path = "C:\\DumbJuice" # err, what do i do if C is on available or not preffered? TODO:
     build_folder = os.path.join(os.getcwd(), "dumbjuice_build")
-    python_install_path = os.path.join(dumbjuice_path, "python", python_version)
+    dist_folder = os.path.join(os.getcwd(), "dumbjuice_dist")
+    zip_filename = config["program_name"]
+    python_install_path = os.path.join(dumbjuice_path, "python", python_version) # not used
     program_path = os.path.join(dumbjuice_path, "programs", program_name)
     program_app_folder = os.path.join(program_path, "appfolder")
-    venv_path = os.path.join(program_path, "venv")
-    source_folder = target_folder  
+    venv_path = os.path.join(program_path, "venv") # not used
+    source_folder = target_folder
 
     # Ensure build folder exists
     if os.path.exists(build_folder):
-        shutil.rmtree(build_folder)
+        shutil.rmtree(build_folder) # doesn't this do this twice?
     os.makedirs(build_folder)
 
     # Ensure program directory exists
@@ -104,13 +104,10 @@ def build(target_folder=None):
     # Copy contents of the user's appfolder into the new appfolder
     excluded_files = load_gitignore(source_folder) | HARDCODED_IGNORES
     excluded_files = {item.rstrip('/') for item in excluded_files} # not sure why, but the .gitignore items with a trailing / is not identified by ignore_patterns
-    
-    #excluded_files = {"*.egg-info"}
     shutil.copytree(source_folder, appfolder, dirs_exist_ok=True, ignore=shutil.ignore_patterns(*excluded_files))
 
     if not os.path.isfile(os.path.join(appfolder,"icon.ico")):
         shutil.copyfile(get_default_icon(),os.path.join(appfolder,"icon.ico"))
-
 
     # Generate install.bat file
     install_bat_path = os.path.join(build_folder, "install.bat")
@@ -125,7 +122,20 @@ pause
     with open(build_ps1_path, "w") as ps1_file:
         ps1_file.write(f"""# Configuration
 $pythonVersion = "{python_version}"
-$dumbJuicePath = "C:\\DumbJuice"
+
+# Get the current user's home directory and extract the drive letter
+$homeDirectory = [System.Environment]::GetFolderPath('UserProfile')
+$driveLetter = $homeDirectory.Substring(0, 2)  # Get the drive letter (e.g., C: or D:)
+
+# Construct the DumbJuice path dynamically
+$dumbJuicePath = Join-Path -Path $driveLetter -ChildPath "DumbJuice"
+
+# Create the directory if it doesn't exist
+#New-Item -ItemType Directory -Path $dumbJuicePath -Force | Out-Null
+
+Write-Output "DumbJuice path: $dumbJuicePath"
+
+#$dumbJuicePath = "C:\\DumbJuice"
 $pythonInstallPath = "$dumbJuicePath\\python\\$pythonVersion"
 $programName = "{program_name}"
 $programPath = "$dumbJuicePath\\programs\\$programName"
@@ -208,3 +218,5 @@ Write-Output "Installation complete. Use the shortcut to run $programName!"
 """)
 
     print(f"Build files created at: {build_folder}")
+    os.makedirs(dist_folder, exist_ok=True)
+    shutil.make_archive(os.path.join(dist_folder, zip_filename), 'zip', build_folder)
