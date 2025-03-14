@@ -7,7 +7,7 @@ import sys
 import fnmatch
 
 
-HARDCODED_IGNORES = {"dumbjuice_build",".gitignore"}
+HARDCODED_IGNORES = {"dumbjuice_build","dumbjuice_dist",".gitignore"}
 
 def load_gitignore(source_folder):
     """Load ignore patterns from .gitignore if it exists."""

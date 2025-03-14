@@ -1,5 +1,6 @@
 # custom
 dumbjuice_build
+dumbjuice_dist
 install.bat
 builder.py
 
