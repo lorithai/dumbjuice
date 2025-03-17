@@ -15,8 +15,8 @@ pip install dumbjuice
 
 #### Recommended project structure
 `
-project_folder/
-│
+project_folder/<br>
+│<br>
 ├── main.py                # Your main program file <br>
 ├── dumbjuice.conf          # Configuration file for DumbJuice<br>
 ├── .gitignore (optional)   # Git ignore file (optional)<br>
