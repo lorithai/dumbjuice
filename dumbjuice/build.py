@@ -7,7 +7,7 @@ import sys
 
 ICON_NAME = "djicon.ico"
 HARDCODED_IGNORES = {"dumbjuice_build","dumbjuice_dist",".gitignore",".git",".git/","*.git"}
-default_config = {"gui":False,"ignore":None,"use_gitignore":False}
+default_config = {"gui":False,"ignore":None,"use_gitignore":False,"include":None}
 
 def load_gitignore(source_folder):
     """Load ignore patterns from .gitignore if it exists."""
@@ -98,7 +98,9 @@ def build(target_folder=None):
         excluded_files = excluded_files | set(config["ignore"])
 
     excluded_files = excluded_files | HARDCODED_IGNORES
-    excluded_files = {item.rstrip('/') for item in excluded_files} # not sure why, but the .gitignore items with a trailing / is not identified by ignore_patterns
+    if config["include"] is not None:
+        excluded_files.difference_update(set(config["include"]))
+    excluded_files = {item.rstrip('/') for item in excluded_files} # not sure why, but the .gitignore items with a trailing / is not identified by ignore_patterns, maybe not, dunno, but this way works so meh
     shutil.copytree(source_folder, appfolder, dirs_exist_ok=True, ignore=shutil.ignore_patterns(*excluded_files))
 
     if not os.path.isfile(os.path.join(appfolder,ICON_NAME)):
