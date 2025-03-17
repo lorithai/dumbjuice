@@ -14,7 +14,7 @@ pip install dumbjuice
 
 
 #### Recommended project structure
-`
+
 project_folder/<br>
 │<br>
 ├── main.py                # Your main program file <br>
@@ -29,7 +29,7 @@ project_folder/<br>
 │       └── another_file.py<br>
 │<br>
 └── other_script.py         # Additional Python script files (optional)<br>
-`
+
 #### Configuration
 The build function needs a json configuration file (dumbjuice.conf) with the following:
 `
