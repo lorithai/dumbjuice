@@ -10,7 +10,7 @@ pip install dumbjuice
 
 ## Usage
 ### TLDR
-* create a dumbjuice.conf file in your projects base folder with the minimum content (replace MyProgramname with your program's name and your python version)
+* Create a dumbjuice.conf file in your projects base folder with the minimum content (replace MyProgramName with your program's name and update python_version to your python version)
 ```
 {
   "program_name": "MyProgramName",
@@ -21,7 +21,7 @@ pip install dumbjuice
 * Test script by running the install.bat file in `dumbjuice_build/`
 * Send the zipped file in `dumbjuice_dist` to those you want
 
-### Requirements
+### Full instructions
 #### Recommended project structure
 ```
 project_folder/
@@ -58,7 +58,7 @@ The build function needs a json configuration file (dumbjuice.conf) with the fol
 `gui`: Set to `true` if your program requires a GUI; set to `false` for console programs (default)<br> 
 `ignore`: A list of files or directories to be excluded from the build<br>
 `use_gitignore`: Set to `true` if you want to use .gitignore rules to determine which files to exclude<br>
-include: A list of files or directories that should always be included, even if they are in the ignore list<br>
+`include`: A list of files or directories that should always be included, even if they are in the ignore list<br>
 
 \* required
 
@@ -72,7 +72,6 @@ Alternatively, if you want to use the command line interface (CLI), you can use 
 ```
 dumbjuice-build <target_folder>
 ```
-
 or in python
 ```
 import dumbjuice as dj
@@ -84,13 +83,13 @@ dj.build(<target_folder>)
 ```
 project_folder/
 │
-├── dumbjuice_build/        # Your main program file 
+├── dumbjuice_build/        # Raw build files, can be used to test the installation script
 │   ├── install.bat         # Install script
 │   ├── appfolder/          # Other Python files
 │       └── <copied_files>  # Everything you haven't excluded through .gitignore or exclude ends up here
 │       └── build.ps1       # installation script
 │       └── djicon.ico      # either your icon.ico icon or the default dumbjuice icon if you didn't provide
-├── dumbjuice_dist/         # Your main program file 
+├── dumbjuice_dist/         # distribution files
 │   ├── <program_name>.zip  # zipped contents of dumbjuice_build, ready for distribution
 ├── main.py                 # Your main program file 
 ├── dumbjuice.conf          # Configuration file for DumbJuice
@@ -109,15 +108,18 @@ project_folder/
 ## What Happens During the Build Process?
 * Your program files, including the `requirements.txt` and dumbjuice.conf, are copied into a new folder structure in `dumbjuice_build/appfolder/`
 * A `build.ps1` file is created that is responsible for installing the program and necessary modules for the user is added `dumbjuice_build/appfolder/`
-* A `install.bat` file which initiates the `build.ps1` on the users end when started is added to `dumbjuice_build/`
-* The entire dumbjuice_build folder is zipped and added to dumbjuice_dist
+* An `install.bat` file which initiates the `build.ps1` on the users end when started is added to `dumbjuice_build/`
+* The entire `dumbjuice_build` folder is zipped and added to `dumbjuice_dist`
 
 ## What happens during the install process?
 * DumbJuice looks for already existing DumbJuice installation and adds it if necessary
-* DumbJuice script creates the program structure in /DumbJuice/programs/<program_name> and copies over the files in appfolder/
-* DumbJuice script install the defined python version (if not present in DumbJuice already), creates a venv for the program and installs all modules defined in requirements.txt
+* DumbJuice script creates the program structure in `/DumbJuice/Programs/<program_name>` and copies over the files in `appfolder/`
+* DumbJuice script install the defined python version (if not present in DumbJuice already), creates a venv for the program and installs all modules defined in `requirements.txt`
 * DumbJuice script creates shortcuts for the user which starts the program
 
 ## Starting a program
 Simply double click the generated <program_name> shortcut, either on the Desktop or in the `/DumbJuice/programs/<program_name>` folder
 
+## Debugging
+Sometimes there may be uncaught errors that causes program crashes. 
+There is a `/DumbJuice/programs/<program_name>_debug` shortcut that leaves a command line open for debugging if needed
