@@ -261,6 +261,19 @@ Write-Output "Copying shortcut to Desktop..."
 Copy-Item -Path $shortcutPath -Destination $desktopShortcutPath
 Write-Output "Shortcut copied to Desktop."
 
+$debugShortcutPath = "$programPath\\$programName.debug.lnk"
+$debugExecutablePath = "$venvPath\\Scripts\\python.exe"
+
+Write-Output "Creating debug launcher..."
+$WScriptShell = New-Object -ComObject WScript.Shell
+$Shortcut = $WScriptShell.CreateShortcut($debugShortcutPath)
+$Shortcut.TargetPath = $debugExecutablePath
+$Shortcut.Arguments = "-i $arguments"
+$Shortcut.WorkingDirectory = $programAppFolder
+$Shortcut.IconLocation = $iconFile  # Set the icon location for the shortcut
+$Shortcut.WindowStyle = 1
+$Shortcut.Save()
+
 Write-Output "Installation complete. Use the shortcut to run $programName!"
 
 """)
