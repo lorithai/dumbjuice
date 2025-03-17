@@ -1,6 +1,6 @@
 """DumbJuice: A simple Python installer automation tool"""
 
-__version__ = "0.5.0"
+from .__version__ import __version__
 
 # Import the build function for convenience
 from .build import build

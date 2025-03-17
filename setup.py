@@ -1,8 +1,14 @@
 from setuptools import setup, find_packages
+import os
+
+
+version = None
+with open(os.path.join(os.path.dirname(__file__), 'dumbjuice', '__version__.py')) as f:
+    exec(f.read())
 
 setup(
     name="dumbjuice",
-    version="0.5",
+    version=version,
     packages=find_packages(include=['dumbjuice', 'dumbjuice.*']),
         package_data={
         'dumbjuice.assets': ['djicon.ico'],
