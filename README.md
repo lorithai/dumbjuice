@@ -44,8 +44,8 @@ The build function needs a json configuration file (dumbjuice.conf) with the fol
 }
 ```
 
-`program_name`: The name of your program. (*)<br>
-`python_version`: The Python version to be installed (e.g., "3.8.10") (*)<br>
+`program_name`: The name of your program. (\*)<br>
+`python_version`: The Python version to be installed (e.g., "3.8.10") (\*)<br>
 `gui`: Set to `true` if your program requires a GUI; set to `false` for console programs (default)<br> 
 `ignore`: A list of files or directories to be excluded from the build<br>
 `use_gitignore`: Set to `true` if you want to use .gitignore rules to determine which files to exclude<br>
@@ -56,12 +56,12 @@ include: A list of files or directories that should always be included, even if 
 ### Building
 To build the installer for your program, navigate to the folder containing your program's files and configuration, and run the following:
 ```
-python -m dumbjuice build [target_folder]
+python -m dumbjuice build <target_folder>
 ```
 
 Alternatively, if you want to use the command line interface (CLI), you can use the following command:
 ```
-dumbjuice-build [target_folder]
+dumbjuice-build <target_folder>
 ```
 
 or in python
@@ -70,6 +70,31 @@ import dumbjuice as dj
 dj.build(<target_folder>)
 ```
 `target_folder` (optional): Path to the folder containing your python program files. If not provided, the current working directory will be used.
+
+### Result of a build
+```
+project_folder/
+│
+├── dumbjuice_build/        # Your main program file 
+│   ├── install.bat         # Install script
+│   ├── appfolder/          # Other Python files
+│       └── <copied_files>  # Everything you haven't excluded through .gitignore or exclude ends up here
+│       └── build.ps1       # instructions for installation
+│       └── djicon.ico      # either your icon.ico icon or the default dumbjuice icon
+├── dumbjuice_dist/         # Your main program file 
+├── main.py                 # Your main program file 
+├── dumbjuice.conf          # Configuration file for DumbJuice
+├── .gitignore (optional)   # Git ignore file (optional)
+├── requirements.txt        # Your program's dependencies (if any)
+├── djicon.ico (optional)   # Optional icon file for the application
+│
+├── some_folder/            # Additional folders (optional)
+│   ├── other_file.py       # Other Python files
+│   └── subfolder/          # Nested subfolders (optional)
+│       └── another_file.py
+│
+└── other_script.py         # Additional Python script files (optional)
+```
 
 
 ## What Happens During the Build Process?
