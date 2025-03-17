@@ -22,8 +22,6 @@ pip install dumbjuice
 * Send the zipped file in `dumbjuice_dist` to those you want
 
 ### Requirements
-
-
 #### Recommended project structure
 ```
 project_folder/
@@ -121,5 +119,5 @@ project_folder/
 * DumbJuice script creates shortcuts for the user which starts the program
 
 ## Starting a program
-Simply double click the generated <program_name> shortcut, either on the Desktop or in the /DumbJuice/programs/<program_name> folder
+Simply double click the generated <program_name> shortcut, either on the Desktop or in the `/DumbJuice/programs/<program_name>` folder
 
