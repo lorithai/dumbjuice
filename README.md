@@ -82,6 +82,7 @@ project_folder/
 │       └── build.ps1       # instructions for installation
 │       └── djicon.ico      # either your icon.ico icon or the default dumbjuice icon
 ├── dumbjuice_dist/         # Your main program file 
+│   ├── <program_name>.zip  # zipped contents of dumbjuice_build, ready for distribution
 ├── main.py                 # Your main program file 
 ├── dumbjuice.conf          # Configuration file for DumbJuice
 ├── .gitignore (optional)   # Git ignore file (optional)
