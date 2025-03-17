@@ -13,7 +13,7 @@ setup(
     ],
     entry_points={
         'console_scripts': [
-            'dumbjuice = dumbjuice.__init__:build',
+            'dumbjuice-build = dumbjuice.build:build',
         ],
     },
 )
