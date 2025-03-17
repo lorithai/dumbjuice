@@ -4,10 +4,11 @@ import requests
 import importlib
 import json
 import sys
-import fnmatch
 
 
-HARDCODED_IGNORES = {"dumbjuice_build","dumbjuice_dist",".gitignore",".git"}
+
+ICON_NAME = "djicon.ico"
+HARDCODED_IGNORES = {"dumbjuice_build","dumbjuice_dist",".gitignore",".git",".git/","*.git"}
 
 def load_gitignore(source_folder):
     """Load ignore patterns from .gitignore if it exists."""
@@ -25,7 +26,7 @@ def load_gitignore(source_folder):
 
 def get_default_icon():
     """Returns the path to the default icon.ico file."""
-    return str(importlib.resources.files('dumbjuice.assets') / 'icon.ico') # / joins the paths
+    return str(importlib.resources.files('dumbjuice.assets') / ICON_NAME) # / joins the paths
 
 def is_python_version_available(python_version):
     url = f"https://www.python.org/ftp/python/{python_version}/"
@@ -73,28 +74,20 @@ def build(target_folder=None):
         print(f"Error: Python version {python_version} is not available for download.")
         return  # Exit the function to stop further processing
     
-    dumbjuice_path = "C:\\DumbJuice" # err, what do i do if C is on available or not preffered? TODO:
+    #dumbjuice_path = "C:\\DumbJuice" # err, what do i do if C is on available or not preffered? TODO:
     build_folder = os.path.join(os.getcwd(), "dumbjuice_build")
     dist_folder = os.path.join(os.getcwd(), "dumbjuice_dist")
     zip_filename = config["program_name"]
-    python_install_path = os.path.join(dumbjuice_path, "python", python_version) # not used
-    program_path = os.path.join(dumbjuice_path, "programs", program_name)
-    program_app_folder = os.path.join(program_path, "appfolder")
-    venv_path = os.path.join(program_path, "venv") # not used
+    #python_install_path = os.path.join(dumbjuice_path, "python", python_version) # not used
+    #program_path = os.path.join(dumbjuice_path, "programs", program_name)
+    #program_app_folder = os.path.join(program_path, "appfolder")
+    #venv_path = os.path.join(program_path, "venv") # not used
     source_folder = target_folder
 
     # Ensure build folder exists
     if os.path.exists(build_folder):
         shutil.rmtree(build_folder) # doesn't this do this twice?
     os.makedirs(build_folder)
-
-    # Ensure program directory exists
-    if not os.path.exists(program_path):
-        os.makedirs(program_path)
-
-    # Ensure appfolder exists inside the program folder
-    if not os.path.exists(program_app_folder):
-        os.makedirs(program_app_folder)
 
     # Copy appfolder contents to the build folder
     appfolder = os.path.join(build_folder, 'appfolder')
@@ -106,8 +99,8 @@ def build(target_folder=None):
     excluded_files = {item.rstrip('/') for item in excluded_files} # not sure why, but the .gitignore items with a trailing / is not identified by ignore_patterns
     shutil.copytree(source_folder, appfolder, dirs_exist_ok=True, ignore=shutil.ignore_patterns(*excluded_files))
 
-    if not os.path.isfile(os.path.join(appfolder,"icon.ico")):
-        shutil.copyfile(get_default_icon(),os.path.join(appfolder,"icon.ico"))
+    if not os.path.isfile(os.path.join(appfolder,ICON_NAME)):
+        shutil.copyfile(get_default_icon(),os.path.join(appfolder,ICON_NAME))
 
     # Generate install.bat file
     install_bat_path = os.path.join(build_folder, "install.bat")
@@ -202,7 +195,7 @@ $requirementsFile = "$programAppFolder\\requirements.txt"
 #$scriptToRun = "$sourceFolder\\main.py"
 
 # Set path to the icon file
-$iconFile = "$programAppFolder\\icon.ico"  # Make sure you have the .ico file in appfolder
+$iconFile = "$programAppFolder\\{ICON_NAME}"  # Make sure you have the .ico file in appfolder
 
 # Ensure DumbJuice folder exists
 New-Item -ItemType Directory -Path $dumbJuicePath -Force | Out-Null

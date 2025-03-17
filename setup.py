@@ -2,10 +2,10 @@ from setuptools import setup, find_packages
 
 setup(
     name="dumbjuice",
-    version="0.3",
+    version="0.5",
     packages=find_packages(include=['dumbjuice', 'dumbjuice.*']),
         package_data={
-        'dumbjuice.assets': ['icon.ico'],
+        'dumbjuice.assets': ['djicon.ico'],
     },
     include_package_data=True,  # Ensures non-Python files are included
     install_requires=[
