@@ -50,27 +50,26 @@ The build function needs a json configuration file (dumbjuice.conf) with the fol
 `ignore`: A list of files or directories to be excluded from the build<br>
 `use_gitignore`: Set to `true` if you want to use .gitignore rules to determine which files to exclude<br>
 include: A list of files or directories that should always be included, even if they are in the ignore list<br>
-<br><br>
 
 \* required
 
 ### Building
 To build the installer for your program, navigate to the folder containing your program's files and configuration, and run the following:
-`
+```
 python -m dumbjuice build [target_folder]
-`
+```
 
 Alternatively, if you want to use the command line interface (CLI), you can use the following command:
-`
+```
 dumbjuice-build [target_folder]
-`
+```
 
 or in python
-`
+```
 import dumbjuice as dj
 dj.build(<target_folder>)
-
-target_folder (optional): Path to the folder containing your python program files. If not provided, the current working directory will be used.
+```
+`target_folder` (optional): Path to the folder containing your python program files. If not provided, the current working directory will be used.
 
 
 ## What Happens During the Build Process?
