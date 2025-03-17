@@ -32,6 +32,7 @@ project_folder/<br>
 
 #### Configuration
 The build function needs a json configuration file (dumbjuice.conf) with the following:
+<br>
 `
 {
   "program_name": "MyProgram",
@@ -42,6 +43,7 @@ The build function needs a json configuration file (dumbjuice.conf) with the fol
   "include": ["my_module.py"]
 }
 `
+<br>
 program_name: The name of your program. (*)
 python_version: The Python version to be installed (e.g., "3.8.10"). (*)
 gui: Set to true if your program requires a GUI; set to false for console programs. 
