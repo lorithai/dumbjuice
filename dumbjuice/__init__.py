@@ -25,7 +25,7 @@ def load_gitignore(source_folder):
     return ignore_patterns
 
 def get_default_icon():
-    """Returns the path to the default icon.ico file."""
+    f"""Returns the path to the default {ICON_NAME} file."""
     return str(importlib.resources.files('dumbjuice.assets') / ICON_NAME) # / joins the paths
 
 def is_python_version_available(python_version):
@@ -180,7 +180,6 @@ $dumbJuicePath = Join-Path -Path $driveLetter -ChildPath "DumbJuice"
 
 Write-Output "DumbJuice path: $dumbJuicePath"
 
-#$dumbJuicePath = "C:\\DumbJuice"
 $pythonInstallPath = "$dumbJuicePath\\python\\$pythonVersion"
 $programName = "{program_name}"
 $programPath = "$dumbJuicePath\\programs\\$programName"
