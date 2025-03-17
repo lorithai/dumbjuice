@@ -10,7 +10,6 @@ def main():
         if sys.argv[1] == "build":
             if len(sys.argv) > 2:
                 target_folder = sys.argv[2]
-
         else:
             target_folder = sys.argv[1]
     
