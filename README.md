@@ -9,6 +9,17 @@ pip install dumbjuice
 `
 
 ## Usage
+### TLDR
+* create a dumbjuice.conf file in your projects base folder with the minimum content (replace MyProgramname with your program's name and your python version)
+```
+{
+  "program_name": "MyProgramName",
+  "python_version": "3.11.7"
+}
+```
+* Run `dumbjuice-build <project_folder_path>`
+* Test script by running the install.bat file in `dumbjuice_build/`
+* Send the zipped file in `dumbjuice_dist` to those you want
 
 ### Requirements
 
@@ -35,7 +46,7 @@ The build function needs a json configuration file (dumbjuice.conf) with the fol
 
 ```
 {
-  "program_name": "MyProgram",
+  "program_name": "MyProgramName",
   "python_version": "3.11.7",
   "gui": false,
   "ignore": ["*.git", "*.gitignore"],
@@ -79,8 +90,8 @@ project_folder/
 │   ├── install.bat         # Install script
 │   ├── appfolder/          # Other Python files
 │       └── <copied_files>  # Everything you haven't excluded through .gitignore or exclude ends up here
-│       └── build.ps1       # instructions for installation
-│       └── djicon.ico      # either your icon.ico icon or the default dumbjuice icon
+│       └── build.ps1       # installation script
+│       └── djicon.ico      # either your icon.ico icon or the default dumbjuice icon if you didn't provide
 ├── dumbjuice_dist/         # Your main program file 
 │   ├── <program_name>.zip  # zipped contents of dumbjuice_build, ready for distribution
 ├── main.py                 # Your main program file 
@@ -97,11 +108,10 @@ project_folder/
 └── other_script.py         # Additional Python script files (optional)
 ```
 
-
 ## What Happens During the Build Process?
-* Your program files, including the requirements.txt and dumbjuice.conf, are copied into a new folder structure in dumbjuice_build/appfolder
-* A build.ps1 file is created that is responsible for installing the program and necessary for the user is added dumbjuice_build/appfolder
-* A install.bat file which initiates the build.ps1 on the users end when started is added to dumbjuice_build/
+* Your program files, including the `requirements.txt` and dumbjuice.conf, are copied into a new folder structure in `dumbjuice_build/appfolder/`
+* A `build.ps1` file is created that is responsible for installing the program and necessary modules for the user is added `dumbjuice_build/appfolder/`
+* A `install.bat` file which initiates the `build.ps1` on the users end when started is added to `dumbjuice_build/`
 * The entire dumbjuice_build folder is zipped and added to dumbjuice_dist
 
 ## What happens during the install process?
@@ -112,13 +122,4 @@ project_folder/
 
 ## Starting a program
 Simply double click the generated <program_name> shortcut, either on the Desktop or in the /DumbJuice/programs/<program_name> folder
-
-## Instructions
-in your python app folder create a dumbjuice.conf
-if you are using any libraries and modules that require installing by pip, include that in a requirements.txt file as well
-
-`
-import dumbjuice as dj
-dj.build("appfolder")
-`
 
