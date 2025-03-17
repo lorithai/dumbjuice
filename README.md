@@ -14,25 +14,25 @@ pip install dumbjuice
 
 
 #### Recommended project structure
-
-project_folder/<br>
-│<br>
-├── main.py                # Your main program file <br>
-├── dumbjuice.conf          # Configuration file for DumbJuice<br>
-├── .gitignore (optional)   # Git ignore file (optional)<br>
-├── requirements.txt        # Your program's dependencies (if any)<br>
-├── djicon.ico (optional)   # Optional icon file for the application<br>
-│<br>
-├── some_folder/            # Additional folders (optional)<br>
-│   ├── other_file.py       # Other Python files<br>
-│   └── subfolder/          # Nested subfolders (optional)<br>
-│       └── another_file.py<br>
-│<br>
-└── other_script.py         # Additional Python script files (optional)<br>
-
+```
+project_folder/
+│
+├── main.py                # Your main program file 
+├── dumbjuice.conf          # Configuration file for DumbJuice
+├── .gitignore (optional)   # Git ignore file (optional)
+├── requirements.txt        # Your program's dependencies (if any)
+├── djicon.ico (optional)   # Optional icon file for the application
+│
+├── some_folder/            # Additional folders (optional)
+│   ├── other_file.py       # Other Python files
+│   └── subfolder/          # Nested subfolders (optional)
+│       └── another_file.py
+│
+└── other_script.py         # Additional Python script files (optional)
+```
 #### Configuration
 The build function needs a json configuration file (dumbjuice.conf) with the following:
-<br>
+
 ```
 {
   "program_name": "MyProgram",
@@ -43,7 +43,7 @@ The build function needs a json configuration file (dumbjuice.conf) with the fol
   "include": ["my_module.py"]
 }
 ```
-<br>
+
 program_name: The name of your program. (*)
 python_version: The Python version to be installed (e.g., "3.8.10"). (*)
 gui: Set to true if your program requires a GUI; set to false for console programs. 
