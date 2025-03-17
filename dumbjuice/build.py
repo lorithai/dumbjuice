@@ -41,7 +41,7 @@ def build(target_folder=None):
         target_folder = os.getcwd()
 
     config_path = os.path.join(target_folder,"dumbjuice.conf")
-
+    print(target_folder)
     try:
         with open(config_path, "r") as f:
             loaded_config = json.load(f)

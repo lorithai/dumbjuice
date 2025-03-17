@@ -4,8 +4,10 @@ import os
 
 version = None
 with open(os.path.join(os.path.dirname(__file__), 'dumbjuice', '__version__.py')) as f:
-    exec(f.read())
-
+    for line in f:
+        if line.startswith('__version__'):
+            version = line.split('=')[1].strip().strip('"')
+            break
 setup(
     name="dumbjuice",
     version=version,
