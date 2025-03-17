@@ -14,9 +14,10 @@ pip install dumbjuice
 
 
 #### Recommended project structure
+`
 project_folder/
 │
-├── main.py                # Your main program file
+├── main.py                # Your main program file 
 ├── dumbjuice.conf          # Configuration file for DumbJuice
 ├── .gitignore (optional)   # Git ignore file (optional)
 ├── requirements.txt        # Your program's dependencies (if any)
@@ -28,7 +29,7 @@ project_folder/
 │       └── another_file.py
 │
 └── other_script.py         # Additional Python script files (optional)
-
+`
 #### Configuration
 The build function needs a json configuration file (dumbjuice.conf) with the following:
 `
