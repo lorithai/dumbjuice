@@ -9,6 +9,7 @@ import sys
 
 ICON_NAME = "djicon.ico"
 HARDCODED_IGNORES = {"dumbjuice_build","dumbjuice_dist",".gitignore",".git",".git/","*.git"}
+default_config = {"gui":False,"ignore":None,"use_gitignore":False}
 
 def load_gitignore(source_folder):
     """Load ignore patterns from .gitignore if it exists."""
@@ -41,22 +42,22 @@ def build(target_folder=None):
     if target_folder is None:
         target_folder = os.getcwd()
 
-
     config_path = os.path.join(target_folder,"dumbjuice.conf")
 
     try:
         with open(config_path, "r") as f:
-            config = json.load(f)
+            loaded_config = json.load(f)
     except (FileNotFoundError, json.JSONDecodeError):
         print("Error: Invalid or missing dumbjuice.conf file.")
         sys.exit(1)
-
     required_keys = ["program_name", "python_version"]
-    missing_keys = [key for key in required_keys if key not in config or not config[key]]
+    missing_keys = [key for key in required_keys if key not in loaded_config or not loaded_config[key]]
     if missing_keys:
         print(f"Error: Missing or empty required config values: {', '.join(missing_keys)}")
         sys.exit(1)  # Exit the script if critical settings are missing
 
+    config = default_config.copy()
+    config.update(loaded_config)
     python_version = config["python_version"]
     program_name = config["program_name"]
 
@@ -74,19 +75,14 @@ def build(target_folder=None):
         print(f"Error: Python version {python_version} is not available for download.")
         return  # Exit the function to stop further processing
     
-    #dumbjuice_path = "C:\\DumbJuice" # err, what do i do if C is on available or not preffered? TODO:
     build_folder = os.path.join(os.getcwd(), "dumbjuice_build")
     dist_folder = os.path.join(os.getcwd(), "dumbjuice_dist")
     zip_filename = config["program_name"]
-    #python_install_path = os.path.join(dumbjuice_path, "python", python_version) # not used
-    #program_path = os.path.join(dumbjuice_path, "programs", program_name)
-    #program_app_folder = os.path.join(program_path, "appfolder")
-    #venv_path = os.path.join(program_path, "venv") # not used
     source_folder = target_folder
 
     # Ensure build folder exists
     if os.path.exists(build_folder):
-        shutil.rmtree(build_folder) # doesn't this do this twice?
+        shutil.rmtree(build_folder) 
     os.makedirs(build_folder)
 
     # Copy appfolder contents to the build folder
@@ -95,7 +91,15 @@ def build(target_folder=None):
         os.makedirs(appfolder)
 
     # Copy contents of the user's appfolder into the new appfolder
-    excluded_files = load_gitignore(source_folder) | HARDCODED_IGNORES
+    excluded_files = set()
+    if config["use_gitignore"]:
+        excluded_files = excluded_files | load_gitignore(target_folder)
+
+    
+    if config["ignore"] is not None:
+        excluded_files = excluded_files | set(config["ignore"])
+
+    excluded_files = excluded_files | HARDCODED_IGNORES
     excluded_files = {item.rstrip('/') for item in excluded_files} # not sure why, but the .gitignore items with a trailing / is not identified by ignore_patterns
     shutil.copytree(source_folder, appfolder, dirs_exist_ok=True, ignore=shutil.ignore_patterns(*excluded_files))
 
