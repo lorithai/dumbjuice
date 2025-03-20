@@ -4,10 +4,13 @@ import requests
 import importlib
 import json
 import sys
+import dumbjuice.addins as addins
 
 ICON_NAME = "djicon.ico"
 HARDCODED_IGNORES = {"dumbjuice_build","dumbjuice_dist",".gitignore",".git",".git/","*.git"}
-default_config = {"gui":False,"ignore":None,"use_gitignore":False,"include":None}
+default_config = {"gui":False,"ignore":None,"use_gitignore":False,"include":None,"addins":None,"mainfile":"main.py"}
+addins_environment_variable_paths = {"ffmpeg":"$ffmpegPath"}
+
 
 def load_gitignore(source_folder):
     """Load ignore patterns from .gitignore if it exists."""
@@ -23,6 +26,23 @@ def load_gitignore(source_folder):
 
     return ignore_patterns
 
+def addins_PATH_import_insert():
+    script = """
+import json 
+import os 
+
+with open("dumbjuice.conf","r") as infile:
+    djconfig = json.load(infile)
+
+for dj_addin_path in djconfig["addin_paths"]:
+    if dj_addin_path not in os.environ["PATH"]:
+        if not os.environ["PATH"][-1] == ";":
+            os.environ["PATH"] += dj_addin_path + os.pathsep
+        else:
+            os.environ["PATH"] += dj_addin_path
+
+"""
+    return script
 def get_default_icon():
     f"""Returns the path to the default {ICON_NAME} file."""
     return str(importlib.resources.files('dumbjuice.assets') / ICON_NAME) # / joins the paths
@@ -106,6 +126,12 @@ def build(target_folder=None):
     if not os.path.isfile(os.path.join(appfolder,ICON_NAME)):
         shutil.copyfile(get_default_icon(),os.path.join(appfolder,ICON_NAME))
 
+    with open(os.path.join("dumbjuice_build","appfolder",config["mainfile"]),"r",encoding="utf-8") as infile:
+        original_main_content = infile.read()
+
+    with open(os.path.join("dumbjuice_build","appfolder",config["mainfile"]),"w",encoding="utf-8") as outfile:
+        outfile.write(addins_PATH_import_insert() + "\n"+ original_main_content)
+
     # Generate install.bat file
     install_bat_path = os.path.join(build_folder, "install.bat")
     with open(install_bat_path, "w") as bat_file:
@@ -164,10 +190,34 @@ Start-Sleep 1
 Write-Output $asciiText
 Start-Sleep 1
 """
+    # ADDINS section
+    # ADDINS ARE BEYOND JANK, dear lord. i wanted to just set the addin paths in the arguments of the .lnk shortcuts, but no go. So it is this horribleness instead
+    environment_paths_to_use = []
+    if config["addins"] is None:
+        pass
+    else:
+        ps1_addin_vars = ""
+        for addin in config["addins"]:
+            if addin in addins_environment_variable_paths:
+                ps1_addin_vars += addins_environment_variable_paths[addin]
+                environment_paths_to_use.append(addins_environment_variable_paths[addin])
+        ps1_addins_install_string = addins.ffmpeg
 
-    build_ps1_path = os.path.join(appfolder, "build.ps1")
-    with open(build_ps1_path, "w") as ps1_file:
-        ps1_file.write(f"""# Configuration
+    saved_paths = ",".join(environment_paths_to_use)
+    ps1_addins_path_string = f"""
+    # read json config
+    $DumbJuiceConfigPath = "$programAppFolder\\dumbjuice.conf"
+    $jsonData = Get-Content -Path $DumbJuiceConfigPath -Raw | ConvertFrom-Json
+    $addins_environement_variable_paths = @({saved_paths})
+    if (-not $jsonData.PSObject.Properties["addin_paths"]) {{
+      $jsonData | Add-Member -MemberType NoteProperty -Name "addin_paths" -Value @()
+    }}
+    $jsonData.addin_paths = $addins_environement_variable_paths
+    $jsonData | ConvertTo-Json -Depth 10 | Set-Content -Path $DumbJuiceConfigPath
+
+"""
+    
+    build_ps1_script = f"""# Configuration
 $pythonVersion = "{python_version}"
 
 {logos} 
@@ -238,11 +288,14 @@ Write-Output "Installing dependencies..."
 & "$venvPath\\Scripts\\python.exe" -m pip install --upgrade pip
 & "$venvPath\\Scripts\\python.exe" -m pip install -r $requirementsFile
 
+# Install addins (if any)
+{ps1_addins_install_string}
+{ps1_addins_path_string}
+
 # Create shortcut to run the program
 $shortcutPath = "$programPath\\$programName.lnk"
 $targetPath = "$venvPath\\Scripts\\{python_executable}.exe"
 $arguments = "`"$programAppFolder\\main.py`""
-
 Write-Output "Creating shortcut..."
 $WScriptShell = New-Object -ComObject WScript.Shell
 $Shortcut = $WScriptShell.CreateShortcut($shortcutPath)
@@ -268,15 +321,21 @@ Write-Output "Creating debug launcher..."
 $WScriptShell = New-Object -ComObject WScript.Shell
 $Shortcut = $WScriptShell.CreateShortcut($debugShortcutPath)
 $Shortcut.TargetPath = $debugExecutablePath
-$Shortcut.Arguments = "-i $arguments"
+$Shortcut.Arguments = "-i $arguments "
 $Shortcut.WorkingDirectory = $programAppFolder
 $Shortcut.IconLocation = $iconFile  # Set the icon location for the shortcut
 $Shortcut.WindowStyle = 1
 $Shortcut.Save()
 
-Write-Output "Installation complete. Use the shortcut to run $programName!"
+"""
+    
+    build_ps1_script += """
 
-""")
+Write-Output "Installation complete. Use the shortcut to run $programName!"
+"""
+    build_ps1_path = os.path.join(appfolder, "build.ps1")
+    with open(build_ps1_path, "w") as ps1_file:
+        ps1_file.write(build_ps1_script)
 
     print(f"Build files created at: {build_folder}")
     os.makedirs(dist_folder, exist_ok=True)
