@@ -2,7 +2,7 @@ import os
 
 _ffmpeg_path = os.path.join("$dumbJuicePath","addins","ffmpeg")
 _ffmpeg_tmp_path = os.path.join("$env:temp","ffmpeg.zip")
-
+# TODO: signature checking for safety https://www.ffmpeg.org/ffmpeg-devel.asc
 ffmpeg = f"""
 $ffmpegInstallFolder = "{_ffmpeg_path}"
 $ffmpegUrl = "https://www.gyan.dev/ffmpeg/builds/ffmpeg-release-essentials.zip"
