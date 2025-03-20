@@ -129,6 +129,8 @@ There is a `/DumbJuice/programs/<program_name>_debug` shortcut that leaves a com
 ```pip install setuptools wheel``` (first time)
 
 Remove previous dist and update version number in setup.py
+
+## Build 
 ```python setup.py sdist bdist_wheel```
 
 ## Upload to pypi
