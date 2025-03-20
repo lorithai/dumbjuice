@@ -125,13 +125,13 @@ Sometimes there may be uncaught errors that causes program crashes.
 There is a `/DumbJuice/programs/<program_name>_debug` shortcut that leaves a command line open for debugging if needed
 
 
-# pypi instructions
+# Pypi instructions
 ```pip install setuptools wheel``` (first time)
 
 Remove previous dist and update version number in setup.py
 ```python setup.py sdist bdist_wheel```
 
-## upload to pipy
+## Upload to pypi
 
 ```pip install twine``` (first time)
 
