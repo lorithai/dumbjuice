@@ -61,7 +61,8 @@ def build(target_folder=None):
         target_folder = os.getcwd()
 
     config_path = os.path.join(target_folder,"dumbjuice.conf")
-    print(target_folder)
+
+    print("DumbJuice in:",target_folder)
     try:
         with open(config_path, "r") as f:
             loaded_config = json.load(f)
@@ -126,11 +127,13 @@ def build(target_folder=None):
     if not os.path.isfile(os.path.join(appfolder,ICON_NAME)):
         shutil.copyfile(get_default_icon(),os.path.join(appfolder,ICON_NAME))
 
-    with open(os.path.join("dumbjuice_build","appfolder",config["mainfile"]),"r",encoding="utf-8") as infile:
-        original_main_content = infile.read()
 
-    with open(os.path.join("dumbjuice_build","appfolder",config["mainfile"]),"w",encoding="utf-8") as outfile:
-        outfile.write(addins_PATH_import_insert() + "\n"+ original_main_content)
+    if config["addins"] is not None:
+        with open(os.path.join("dumbjuice_build","appfolder",config["mainfile"]),"r",encoding="utf-8") as infile:
+            original_main_content = infile.read()
+
+        with open(os.path.join("dumbjuice_build","appfolder",config["mainfile"]),"w",encoding="utf-8") as outfile:
+            outfile.write(addins_PATH_import_insert() + "\n"+ original_main_content)
 
     # Generate install.bat file
     install_bat_path = os.path.join(build_folder, "install.bat")
@@ -245,7 +248,7 @@ $pythonInstallerPath = "$env:TEMP\\python-installer.exe"
 
 # Set paths for the downloaded program files (the ones inside 'appfolder')
 $requirementsFile = "$programAppFolder\\requirements.txt"
-#$scriptToRun = "$sourceFolder\\main.py"
+#$scriptToRun = "$sourceFolder\\{config["mainfile"]}"
 
 # Set path to the icon file
 $iconFile = "$programAppFolder\\{ICON_NAME}"  # Make sure you have the .ico file in appfolder
@@ -295,7 +298,7 @@ Write-Output "Installing dependencies..."
 # Create shortcut to run the program
 $shortcutPath = "$programPath\\$programName.lnk"
 $targetPath = "$venvPath\\Scripts\\{python_executable}.exe"
-$arguments = "`"$programAppFolder\\main.py`""
+$arguments = "`"$programAppFolder\\{config["mainfile"]}`""
 Write-Output "Creating shortcut..."
 $WScriptShell = New-Object -ComObject WScript.Shell
 $Shortcut = $WScriptShell.CreateShortcut($shortcutPath)
