@@ -55,14 +55,14 @@ The build function needs a json configuration file (dumbjuice.conf) with the fol
 }
 ```
 
-`program_name`: The name of your program. (\*)<br>
-`python_version`: The Python version to be installed (e.g., "3.8.10") (\*)<br>
+`program_name`: The name of your program. (__\*__)<br>
+`python_version`: The Python version to be installed (e.g., "3.8.10") (__\*__)<br>
 `gui`: Set to `true` if your program requires a GUI; set to `false` for console programs (default)<br> 
 `ignore`: A list of files or directories to be excluded from the build<br>
 `use_gitignore`: Set to `true` if you want to use .gitignore rules to determine which files to exclude<br>
 `include`: A list of files or directories that should always be included, even if they are in the ignore list<br>
 
-\* required
+__\*__ required
 
 ### Building
 To build the installer for your program, navigate to the folder containing your program's files and configuration, and run the following:
