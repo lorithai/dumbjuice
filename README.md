@@ -115,7 +115,7 @@ project_folder/
 ```
 
 ## What Happens During the Build Process?
-* Your program files, including the `requirements.txt` and dumbjuice.conf, are copied into a new folder structure in `dumbjuice_build/appfolder/`
+* Your program files, including the `requirements.txt` and `dumbjuice.conf`, are copied into a new folder structure in `dumbjuice_build/appfolder/`
 * A `build.ps1` file is created that is responsible for installing the program and necessary modules for the user is added `dumbjuice_build/appfolder/`
 * An `install.bat` file which initiates the `build.ps1` on the users end when started is added to `dumbjuice_build/`
 * The entire `dumbjuice_build` folder is zipped and added to `dumbjuice_dist`
