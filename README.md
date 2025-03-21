@@ -20,7 +20,7 @@ pip install dumbjuice
 ```
 {
   "program_name": "MyProgramName",
-  "python_version": "3.11.7"
+  "python_version": "3.11.7",
   "mainfile": "main_programfile.py"
 }
 ```
