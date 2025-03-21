@@ -46,7 +46,7 @@ project_folder/
 └── other_script.py         # Additional Python script files (optional)
 ```
 #### Configuration
-The build function needs a json configuration file (dumbjuice.conf) with the following:
+The build function needs a json configuration file (`dumbjuice.conf`) with the following:
 
 ```
 {
