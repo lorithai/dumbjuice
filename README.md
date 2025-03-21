@@ -16,7 +16,7 @@ pip install dumbjuice
 
 ## Usage
 ### TLDR
-* Create a dumbjuice.conf file in your projects base folder with the minimum content (replace MyProgramName with your program's name and update python_version to your python version)
+* Create a `dumbjuice.conf` file in your projects base folder with the following minimum content (replace MyProgramName with your program's name and update python_version to your python version)
 ```
 {
   "program_name": "MyProgramName",
@@ -24,7 +24,7 @@ pip install dumbjuice
 }
 ```
 * Run `dumbjuice-build`
-* Test script by running the install.bat file in `dumbjuice_build/`
+* Test script by running the `install.bat` file in `dumbjuice_build/`
 * Send the zipped file in `dumbjuice_dist` to those you want
 
 ### Full instructions
