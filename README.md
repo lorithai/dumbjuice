@@ -70,6 +70,7 @@ The build function needs a json configuration file (`dumbjuice.conf`) with the f
 `include`: A list of files or directories that should always be included, even if they are in the ignore list<br>
 `addins`: A list of non-pip libraries and functionalities that require special install instructions and pathing
 `mainfile`: Which python file that is the entry point of the program
+
 __\*__ required
 
 ### Building
