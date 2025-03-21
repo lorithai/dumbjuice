@@ -1,4 +1,6 @@
-<div align="center">![DumbJuice Logo.](https://github.com/lorithai/dumbjuice/blob/main/images/dumbjuice_logo.i.png)</div>
+<div align="center"><img src="https://github.com/lorithai/dumbjuice/blob/main/images/dumbjuice_logo.i.png"></div>
+
+![DumbJuice Logo.](https://github.com/lorithai/dumbjuice/blob/main/images/dumbjuice_logo.i.png)
 
 # DumbJuice 
 DumbJuice is a Python module that simplifies the process of packaging small Python programs into self-contained installable packages. These packages can be shared with non-technical users, who only need to run a single install.bat file to install Python, set up a virtual environment, install necessary dependencies, and create a shortcut to the program on their desktop.
