@@ -122,8 +122,13 @@ Simply double click the generated <program_name> shortcut, either on the Desktop
 
 ## Debugging
 Sometimes there may be uncaught errors that causes program crashes. 
-There is a `/DumbJuice/programs/<program_name>_debug` shortcut that leaves a command line open for debugging if needed
+There is a `/DumbJuice/programs/<program_name>.debug` shortcut that leaves a command line open for debugging if needed
 
+
+# Example builds
+## Youtubedl
+A GUI program to download audio or videos from youtube <br>
+[https://github.com/lorithai/youtubedl](https://github.com/lorithai/youtubedl)
 
 # Pypi instructions
 ```pip install setuptools wheel``` (first time)
