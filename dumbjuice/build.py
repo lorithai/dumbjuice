@@ -37,9 +37,9 @@ with open("dumbjuice.conf","r") as infile:
 for dj_addin_path in djconfig["addin_paths"]:
     if dj_addin_path not in os.environ["PATH"]:
         if not os.environ["PATH"][-1] == ";":
-            os.environ["PATH"] += dj_addin_path + os.pathsep
+            os.environ["PATH"] +=  os.pathsep + dj_addin_path + os.pathsep
         else:
-            os.environ["PATH"] += dj_addin_path
+            os.environ["PATH"] +=  os.pathsep + dj_addin_path
 
 """
     return script
