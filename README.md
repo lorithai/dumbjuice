@@ -52,6 +52,8 @@ The build function needs a json configuration file (dumbjuice.conf) with the fol
   "ignore": ["*.git", "*.gitignore"],
   "use_gitignore": true,
   "include": ["my_module.py"]
+  "addins":["ffmpeg"],
+  "mainfile":"main.py"
 }
 ```
 
@@ -61,7 +63,8 @@ The build function needs a json configuration file (dumbjuice.conf) with the fol
 `ignore`: A list of files or directories to be excluded from the build<br>
 `use_gitignore`: Set to `true` if you want to use .gitignore rules to determine which files to exclude<br>
 `include`: A list of files or directories that should always be included, even if they are in the ignore list<br>
-
+`addins`: A list of non-pip libraries and functionalities that require special install instructions and pathing
+`mainfile`: Which python file that is the entry point of the program
 __\*__ required
 
 ### Building
