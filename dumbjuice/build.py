@@ -196,6 +196,7 @@ Start-Sleep 1
     # ADDINS section
     # ADDINS ARE BEYOND JANK, dear lord. i wanted to just set the addin paths in the arguments of the .lnk shortcuts, but no go. So it is this horribleness instead
     environment_paths_to_use = []
+    ps1_addins_install_string = ""
     if config["addins"] is None:
         pass
     else:
