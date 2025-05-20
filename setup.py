@@ -36,7 +36,7 @@ setup(
     entry_points={
         'console_scripts': [
             'dumbjuice-build = dumbjuice.build:build',
-            'create_ico = dumbjuice.create_ico_entry:main'
+            'dumbjuice-create_ico = dumbjuice.create_ico_entry:main'
         ],
     },
 )
