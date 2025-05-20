@@ -135,11 +135,21 @@ Simply double click the generated <program_name> shortcut, either on the Desktop
 Sometimes there may be uncaught errors that causes program crashes. 
 There is a `/DumbJuice/programs/<program_name>.debug` shortcut that leaves a command line open for debugging if needed
 
+## Utilities
+
+### dumbjuice-create_ico
+Creates an ICO image file. Requires a png of rougly square size of minimum size 512 pixels.
+```
+dumbjuice-create_ico png_path --output djicon.ico
+```
+
 
 # Example builds
 ## Youtubedl
 A GUI program to download audio or videos from youtube <br>
 [https://github.com/lorithai/youtubedl](https://github.com/lorithai/youtubedl)
+
+
 
 # Pypi instructions
 ```pip install setuptools wheel``` (first time)
