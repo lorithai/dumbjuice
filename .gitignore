@@ -3,6 +3,7 @@ dumbjuice_build
 dumbjuice_dist
 install.bat
 builder.py
+installer.nsi
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
