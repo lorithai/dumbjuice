@@ -26,62 +26,86 @@ def find_makensis():
 
     raise RuntimeError("NSIS not found. Please install or ensure it's bundled correctly.")
 
-def generate_nsis_script(conf, output_path):
+def generate_nsis_script(conf, project_name,binpath):
+    python_version = conf['python_version']
+    app_name = conf['program_name']
+
     script = f"""
-!define APP_NAME "{conf['program_name']}"
-!define PYTHON_VERSION "{conf['python_version']}"
-!define PYTHON_INSTALLER "python-$PYTHON_VERSION-amd64.exe"
-!define PYTHON_URL "https://www.python.org/ftp/python/$PYTHON_VERSION/$PYTHON_INSTALLER"
+!addplugindir "{binpath}"
+!define APP_NAME "{app_name}"
+!define PYTHON_VERSION "{python_version}"
+!define PYTHON_INSTALLER "python-{python_version}-amd64.exe"
+!define PYTHON_URL "https://www.python.org/ftp/python/{python_version}/python-{python_version}-amd64.exe"
 
 OutFile "install.exe"
-InstallDir "{os.path.join("$PROGRAMFILES","$APP_NAME")}"
+InstallDir "$PROGRAMFILES\\Dumbjuice"
 RequestExecutionLevel admin
 
 Page directory
 Page instfiles
 
-Section "Install MyApp"
+Section "Install ${{APP_NAME}}"
 
-  SetOutPath "$INSTDIR"
+  ; Define paths
+  StrCpy $0 "$INSTDIR\\python\\{python_version}"
+  StrCpy $1 "$INSTDIR\\programs\\{app_name}"
 
-  ; Copy all app files (must include requirements.txt and main.py)
-  File /r "{os.path.join("build_output","*.*")}"
+  ; Create folders
+  CreateDirectory $0
+  CreateDirectory $1
+
+  ; Set output to app folder
+  SetOutPath $1
+
+  ; Copy all app files
+  File /r "{project_name}\\*.*"
+
+  ; Check if Python version already exists
+  IfFileExists "$0\\python.exe" skip_python_install
 
   ; Download Python installer
-  DetailPrint "Downloading Python..."
-  nsisdl::download "$PYTHON_URL" "{os.path.join("$TEMP","$PYTHON_INSTALLER")}
-  Pop $0
-  StrCmp $0 "cancel" cancel_download
+  DetailPrint "Downloading Python from: ${{PYTHON_URL}}"
+  inetc::get /CAPTION "Downloading Python..." /RESUME "" "${{PYTHON_URL}}" "$TEMP\${{PYTHON_INSTALLER}}" /END
+  Pop $2
+  DetailPrint "Download result: $2"
+  StrCmp $2 "OK" download_ok
+  MessageBox MB_OK "Download failed: $2"
+  Abort
 
-  ; Install Python silently to a subfolder
-  DetailPrint "Installing Python..."
-  ExecWait '"{os.path.join("$TEMP","$PYTHON_INSTALLER")}" /quiet InstallAllUsers=0 PrependPath=0 Include_test=0 TargetDir={os.path.join("$INSTDIR","python")}'
+  download_ok:
+  DetailPrint "Download succeeded."
 
-  ; Create virtual environment
+  ; Install Python
+  DetailPrint "Installing Python ${{PYTHON_VERSION}}..."
+  DetailPrint "$PROGRAMFILES\\Dumbjuice\\python\\{python_version}"
+  ExecWait '"$TEMP\\${{PYTHON_INSTALLER}}" /quiet InstallAllUsers=0 PrependPath=0 Include_test=0 TargetDir="$PROGRAMFILES\\Dumbjuice\\python\\{python_version}"'
+
+skip_python_install:
+
+  ; Create virtual environment in app folder
   DetailPrint "Creating virtual environment..."
-  ExecWait '"{os.path.join("$INSTDIR","python","python.exe")}" -m venv "{os.path.join("$INSTDIR","venv")}"'
+  ExecWait '"$0\\python.exe" -m venv "$1\\venv"'
 
-  ; Install requirements
-  DetailPrint "Installing requirements..."
-  
-  ExecWait '"{os.path.join("$INSTDIR","venv","Scripts","pip.exe")}" install -r "{os.path.join("$INSTDIR","requirements.txt")}"'
+  ; Install requirements into venv
+  DetailPrint "Installing dependencies..."
+  ExecWait '"$1\\venv\\Scripts\\pip.exe" install -r "$1\\requirements.txt"'
 
-  ; Create desktop shortcut
-  DetailPrint "Creating shortcut..."
-  {os.path.join("$INSTDIR","main.py")}
-  CreateShortCut "{os.path.join("$DESKTOP","${APP_NAME}.lnk")}" "{os.path.join("$INSTDIR","venv","Scripts","pythonw.exe")}" "{os.path.join("$INSTDIR","main.py")}"
+  ; Create shortcut on desktop
+  DetailPrint "Creating desktop shortcut..."
+  CreateShortCut "$DESKTOP\\${{APP_NAME}}.lnk" "$1\\venv\\Scripts\\pythonw.exe" '"$1\\main.py"'
 
   Goto done
 
 cancel_download:
-  MessageBox MB_OK "Download cancelled or failed"
+  MessageBox MB_OK "Python download failed or cancelled."
 
 done:
 
 SectionEnd
-
 """
     return script
+
+
 def load_gitignore(source_folder):
     """Load ignore patterns from .gitignore if it exists."""
     gitignore_path = os.path.join(source_folder, ".gitignore")
@@ -417,10 +441,13 @@ Write-Output "Installation complete. Use the shortcut to run $programName!"
 
 
 if __name__ == "__main__":
+    import subprocess
     from pathlib import Path
+    project_name = "gui_example_app"
     local_path = find_makensis()
     current_folder = Path(os.getcwd()).parent
-    config_path = os.path.join(current_folder,"examples","gui_example_app","dumbjuice.conf")
+    project_path = os.path.join(current_folder,"examples",project_name)
+    config_path = os.path.join(project_path,"dumbjuice.conf")
     #config_path = os.path.join(target_folder,"dumbjuice.conf")
     try:
         with open(config_path, "r") as f:
@@ -428,6 +455,21 @@ if __name__ == "__main__":
     except (FileNotFoundError, json.JSONDecodeError):
         print("Error: Invalid or missing dumbjuice.conf file.")
     #generate_nsis_script(conf, output_path)
-    script = generate_nsis_script(loaded_config, "hello")
-    with open(os.path.join(current_folder,"installer.nsi"),"w") as outfile:
+    nsis_bin_path = os.path.join(project_path,"bin")
+    script = generate_nsis_script(loaded_config, project_name,nsis_bin_path)
+    nsis_file = os.path.join(Path(project_path).parent,"installer.nsi")
+    with open(nsis_file ,"w") as outfile:
         outfile.write(script)
+
+    nsis_path = os.path.join(os.getcwd(),"bin","nsis","makensis")
+
+    try:
+        result = subprocess.run(
+            [nsis_path, nsis_file],
+            check=True,
+            capture_output=True,
+            text=True
+        )
+        print("NSIS build output:\n", result.stdout)
+    except subprocess.CalledProcessError as e:
+        print("NSIS build failed:\n", e.stderr)
