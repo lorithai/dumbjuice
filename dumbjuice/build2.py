@@ -4,7 +4,7 @@ import requests
 import importlib
 import json
 import sys
-import dumbjuice.addins as addins
+#import dumbjuice.addins as addins
 
 ICON_NAME = "djicon.ico"
 HARDCODED_IGNORES = {"dumbjuice_build","dumbjuice_dist",".gitignore",".git",".git/","*.git"}
@@ -24,8 +24,64 @@ def find_makensis():
     if os.path.isfile(local_path):
         return local_path
 
-    raise RuntimeError("NSIS not found. Please install or ensure it’s bundled correctly.")
+    raise RuntimeError("NSIS not found. Please install or ensure it's bundled correctly.")
 
+def generate_nsis_script(conf, output_path):
+    script = f"""
+!define APP_NAME "{conf['program_name']}"
+!define PYTHON_VERSION "{conf['python_version']}"
+!define PYTHON_INSTALLER "python-$PYTHON_VERSION-amd64.exe"
+!define PYTHON_URL "https://www.python.org/ftp/python/$PYTHON_VERSION/$PYTHON_INSTALLER"
+
+OutFile "install.exe"
+InstallDir "{os.path.join("$PROGRAMFILES","$APP_NAME")}"
+RequestExecutionLevel admin
+
+Page directory
+Page instfiles
+
+Section "Install MyApp"
+
+  SetOutPath "$INSTDIR"
+
+  ; Copy all app files (must include requirements.txt and main.py)
+  File /r "{os.path.join("build_output","*.*")}"
+
+  ; Download Python installer
+  DetailPrint "Downloading Python..."
+  nsisdl::download "$PYTHON_URL" "{os.path.join("$TEMP","$PYTHON_INSTALLER")}
+  Pop $0
+  StrCmp $0 "cancel" cancel_download
+
+  ; Install Python silently to a subfolder
+  DetailPrint "Installing Python..."
+  ExecWait '"{os.path.join("$TEMP","$PYTHON_INSTALLER")}" /quiet InstallAllUsers=0 PrependPath=0 Include_test=0 TargetDir={os.path.join("$INSTDIR","python")}'
+
+  ; Create virtual environment
+  DetailPrint "Creating virtual environment..."
+  ExecWait '"{os.path.join("$INSTDIR","python","python.exe")}" -m venv "{os.path.join("$INSTDIR","venv")}"'
+
+  ; Install requirements
+  DetailPrint "Installing requirements..."
+  
+  ExecWait '"{os.path.join("$INSTDIR","venv","Scripts","pip.exe")}" install -r "{os.path.join("$INSTDIR","requirements.txt")}"'
+
+  ; Create desktop shortcut
+  DetailPrint "Creating shortcut..."
+  {os.path.join("$INSTDIR","main.py")}
+  CreateShortCut "{os.path.join("$DESKTOP","${APP_NAME}.lnk")}" "{os.path.join("$INSTDIR","venv","Scripts","pythonw.exe")}" "{os.path.join("$INSTDIR","main.py")}"
+
+  Goto done
+
+cancel_download:
+  MessageBox MB_OK "Download cancelled or failed"
+
+done:
+
+SectionEnd
+
+"""
+    return script
 def load_gitignore(source_folder):
     """Load ignore patterns from .gitignore if it exists."""
     gitignore_path = os.path.join(source_folder, ".gitignore")
@@ -360,3 +416,18 @@ Write-Output "Installation complete. Use the shortcut to run $programName!"
     shutil.make_archive(os.path.join(dist_folder, zip_filename), 'zip', build_folder)
 
 
+if __name__ == "__main__":
+    from pathlib import Path
+    local_path = find_makensis()
+    current_folder = Path(os.getcwd()).parent
+    config_path = os.path.join(current_folder,"examples","gui_example_app","dumbjuice.conf")
+    #config_path = os.path.join(target_folder,"dumbjuice.conf")
+    try:
+        with open(config_path, "r") as f:
+            loaded_config = json.load(f)
+    except (FileNotFoundError, json.JSONDecodeError):
+        print("Error: Invalid or missing dumbjuice.conf file.")
+    #generate_nsis_script(conf, output_path)
+    script = generate_nsis_script(loaded_config, "hello")
+    with open(os.path.join(current_folder,"installer.nsi"),"w") as outfile:
+        outfile.write(script)
