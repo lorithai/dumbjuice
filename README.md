@@ -150,18 +150,21 @@ A GUI program to download audio or videos from youtube <br>
 [https://github.com/lorithai/youtubedl](https://github.com/lorithai/youtubedl)
 
 
-
-# Pypi instructions
+# DEV
+## Pypi instructions
 ```pip install setuptools wheel``` (first time)
 
 Remove previous dist and update version number in setup.py
 
-## Build 
+### Build 
 ```python setup.py sdist bdist_wheel```
 
-## Upload to pypi
+### Upload to pypi
 
 ```pip install twine``` (first time)
 
 ```twine upload dist/*```
 enter username __token__ and api token as password.
+
+## local testing
+```pip install -e .```
