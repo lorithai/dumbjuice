@@ -4,7 +4,7 @@ import requests
 import importlib
 import json
 import sys
-#import dumbjuice.addins as addins
+import dumbjuice.addins as addins
 
 ICON_NAME = "djicon.ico"
 HARDCODED_IGNORES = {"dumbjuice_build","dumbjuice_dist",".gitignore",".git",".git/","*.git"}
@@ -24,87 +24,7 @@ def find_makensis():
     if os.path.isfile(local_path):
         return local_path
 
-    raise RuntimeError("NSIS not found. Please install or ensure it's bundled correctly.")
-
-def generate_nsis_script(conf, project_name,binpath):
-    python_version = conf['python_version']
-    app_name = conf['program_name']
-
-    script = f"""
-!addplugindir "{binpath}"
-!define APP_NAME "{app_name}"
-!define PYTHON_VERSION "{python_version}"
-!define PYTHON_INSTALLER "python-{python_version}-amd64.exe"
-!define PYTHON_URL "https://www.python.org/ftp/python/{python_version}/python-{python_version}-amd64.exe"
-
-OutFile "install.exe"
-InstallDir "$PROGRAMFILES\\Dumbjuice"
-RequestExecutionLevel admin
-
-Page directory
-Page instfiles
-
-Section "Install ${{APP_NAME}}"
-
-  ; Define paths
-  StrCpy $0 "$INSTDIR\\python\\{python_version}"
-  StrCpy $1 "$INSTDIR\\programs\\{app_name}"
-
-  ; Create folders
-  CreateDirectory $0
-  CreateDirectory $1
-
-  ; Set output to app folder
-  SetOutPath $1
-
-  ; Copy all app files
-  File /r "{project_name}\\*.*"
-
-  ; Check if Python version already exists
-  IfFileExists "$0\\python.exe" skip_python_install
-
-  ; Download Python installer
-  DetailPrint "Downloading Python from: ${{PYTHON_URL}}"
-  inetc::get /CAPTION "Downloading Python..." /RESUME "" "${{PYTHON_URL}}" "$TEMP\${{PYTHON_INSTALLER}}" /END
-  Pop $2
-  DetailPrint "Download result: $2"
-  StrCmp $2 "OK" download_ok
-  MessageBox MB_OK "Download failed: $2"
-  Abort
-
-  download_ok:
-  DetailPrint "Download succeeded."
-
-  ; Install Python
-  DetailPrint "Installing Python ${{PYTHON_VERSION}}..."
-  DetailPrint "$PROGRAMFILES\\Dumbjuice\\python\\{python_version}"
-  ExecWait '"$TEMP\\${{PYTHON_INSTALLER}}" /quiet InstallAllUsers=0 PrependPath=0 Include_test=0 TargetDir="$PROGRAMFILES\\Dumbjuice\\python\\{python_version}"'
-
-skip_python_install:
-
-  ; Create virtual environment in app folder
-  DetailPrint "Creating virtual environment..."
-  ExecWait '"$0\\python.exe" -m venv "$1\\venv"'
-
-  ; Install requirements into venv
-  DetailPrint "Installing dependencies..."
-  ExecWait '"$1\\venv\\Scripts\\pip.exe" install -r "$1\\requirements.txt"'
-
-  ; Create shortcut on desktop
-  DetailPrint "Creating desktop shortcut..."
-  CreateShortCut "$DESKTOP\\${{APP_NAME}}.lnk" "$1\\venv\\Scripts\\pythonw.exe" '"$1\\main.py"'
-
-  Goto done
-
-cancel_download:
-  MessageBox MB_OK "Python download failed or cancelled."
-
-done:
-
-SectionEnd
-"""
-    return script
-
+    raise RuntimeError("NSIS not found. Please install or ensure it’s bundled correctly.")
 
 def load_gitignore(source_folder):
     """Load ignore patterns from .gitignore if it exists."""
@@ -440,36 +360,3 @@ Write-Output "Installation complete. Use the shortcut to run $programName!"
     shutil.make_archive(os.path.join(dist_folder, zip_filename), 'zip', build_folder)
 
 
-if __name__ == "__main__":
-    import subprocess
-    from pathlib import Path
-    project_name = "gui_example_app"
-    local_path = find_makensis()
-    current_folder = Path(os.getcwd()).parent
-    project_path = os.path.join(current_folder,"examples",project_name)
-    config_path = os.path.join(project_path,"dumbjuice.conf")
-    #config_path = os.path.join(target_folder,"dumbjuice.conf")
-    try:
-        with open(config_path, "r") as f:
-            loaded_config = json.load(f)
-    except (FileNotFoundError, json.JSONDecodeError):
-        print("Error: Invalid or missing dumbjuice.conf file.")
-    #generate_nsis_script(conf, output_path)
-    nsis_bin_path = os.path.join(project_path,"bin")
-    script = generate_nsis_script(loaded_config, project_name,nsis_bin_path)
-    nsis_file = os.path.join(Path(project_path).parent,"installer.nsi")
-    with open(nsis_file ,"w") as outfile:
-        outfile.write(script)
-
-    nsis_path = os.path.join(os.getcwd(),"bin","nsis","makensis")
-
-    try:
-        result = subprocess.run(
-            [nsis_path, nsis_file],
-            check=True,
-            capture_output=True,
-            text=True
-        )
-        print("NSIS build output:\n", result.stdout)
-    except subprocess.CalledProcessError as e:
-        print("NSIS build failed:\n", e.stderr)
