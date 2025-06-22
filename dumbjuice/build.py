@@ -10,22 +10,39 @@ import subprocess
 ICON_NAME = "djicon.ico"
 HARDCODED_IGNORES = {"dumbjuice_build","dumbjuice_dist",".gitignore",".git",".git/","*.git"}
 default_config = {"gui":False,"ignore":None,"use_gitignore":False,"include":None,"addins":None,"mainfile":"main.py"}
-addins_environment_variable_paths = {"ffmpeg":"$ffmpegPath"}
+ADDINS_LIBRARY = {"ffmpeg":{"relpath":"addins/ffmpeg/bin","installer_source":"https://www.gyan.dev/ffmpeg/builds/ffmpeg-release-essentials.zip"}}
 
 def find_makensis():
-    local_path = os.path.join(os.path.dirname(__file__), "bin", "nsis", "makensis.exe") # TODO: replace with 
+    local_path = os.path.join(os.path.dirname(__file__), "bin", "nsis", "makensis.exe") 
     if os.path.isfile(local_path):
         return local_path
     raise RuntimeError("NSIS not found")
 
-def generate_nsis_script(conf, project_name):
+def generate_nsis_script(conf, project_name,active_addins=None):
     python_version = conf['python_version']
     app_name = conf['program_name']
     binpath = str(importlib.resources.files('dumbjuice.bin').joinpath('').resolve())
 
+    addin_blocks = []
+    for addin_name in active_addins:
+        meta = ADDINS_LIBRARY[addin_name]
+        zip_name = addin_name + ".zip"
+        install_path = os.path.join("$INSTDIR", meta["relpath"].replace("/", "\\"))
+        addin_blocks.append(f"""
+    DetailPrint "Installing add-in: {addin_name}"
+    inetc::get "{meta['installer_source']}" "$TEMP\\{zip_name}" /END
+    Pop $0
+    StrCmp $0 "OK" 0 +3
+        DetailPrint "Extracting {addin_name}..."
+        nsisunz::Unzip "$TEMP\\{zip_name}" "{install_path}"
+        Delete "$TEMP\\{zip_name}"
+    """)
+    addins_scripts = "\n".join(addin_blocks)
 
     script = f"""
 !addplugindir "{binpath}"
+!include "FileFunc.nsh"
+!include "LogicLib.nsh"
 !define APP_NAME "{app_name}"
 !define PYTHON_VERSION "{python_version}"
 !define PYTHON_INSTALLER "python-{python_version}-amd64.exe"
@@ -84,6 +101,9 @@ skip_python_install:
   DetailPrint "Installing dependencies..."
   ExecWait '"$1\\venv\\Scripts\\pip.exe" install -r "$1\\requirements.txt"'
 
+  ; Install addins
+  {addins_scripts}
+
   ; Create shortcut on desktop
   DetailPrint "Creating desktop shortcut..."
   CreateShortCut "$DESKTOP\\${{APP_NAME}}.lnk" "$1\\venv\\Scripts\\pythonw.exe" '"$1\\main.py"'
@@ -99,7 +119,6 @@ SectionEnd
 """
     return script
 
-
 def load_gitignore(source_folder):
     """Load ignore patterns from .gitignore if it exists."""
     gitignore_path = os.path.join(source_folder, ".gitignore")
@@ -114,23 +133,49 @@ def load_gitignore(source_folder):
 
     return ignore_patterns
 
-def addins_PATH_import_insert():
-    script = """
-import json 
-import os 
+def inject_addins_to_main(main_py_path, addin_relpaths):
+    """
+    Injects add-in PATH patching code into the top of the main.py file.
+    Uses namespaced variables to prevent naming conflicts.
+    
+    Args:
+        main_py_path (str): Full path to main.py (or other entrypoint).
+        addin_relpaths (List[str]): List of relative paths to prepend to PATH.
+    """
+    start_marker = "# >>> dumbjuice addins injection >>>"
+    end_marker = "# <<< dumbjuice addins injection <<<"
 
-with open("dumbjuice.conf","r") as infile:
-    djconfig = json.load(infile)
+    # Generate the code block with namespaced variables (Clumsy attempt at such)
+    lines = [start_marker]
+    lines.append("import os")
+    lines.append("import sys")
+    lines.append("")
+    lines.append(f"_dj_addin_relpaths = {repr(addin_relpaths)}")
+    lines.append("_dj_base_path = os.path.dirname(sys.argv[0])")
+    lines.append("for _dj_rel in _dj_addin_relpaths:")
+    lines.append("    _dj_abs_path = os.path.abspath(os.path.join(_dj_base_path, _dj_rel))")
+    lines.append("    if _dj_abs_path not in os.environ['PATH']:")
+    lines.append("        os.environ['PATH'] = _dj_abs_path + os.pathsep + os.environ['PATH']")
+    lines.append(end_marker)
+    injected_block = "\n".join(lines) + "\n\n"
 
-for dj_addin_path in djconfig["addin_paths"]:
-    if dj_addin_path not in os.environ["PATH"]:
-        if not os.environ["PATH"][-1] == ";":
-            os.environ["PATH"] +=  os.pathsep + dj_addin_path + os.pathsep
-        else:
-            os.environ["PATH"] +=  os.pathsep + dj_addin_path
+    # Read the original content
+    with open(main_py_path, "r", encoding="utf-8") as f:
+        original = f.read()
 
-"""
-    return script
+    # Remove any previous injected block
+    if start_marker in original and end_marker in original:
+        pre = original.split(start_marker)[0]
+        post = original.split(end_marker)[-1]
+        cleaned = pre.strip() + "\n\n" + post.lstrip()
+    else:
+        cleaned = original
+
+    # Write the new file with injection at the top
+    with open(main_py_path, "w", encoding="utf-8") as f:
+        f.write(injected_block + cleaned)
+
+    print(f"[dumbjuice] Injected addin paths into {main_py_path}")
 
 def get_default_icon():
     f"""Returns the path to the default {ICON_NAME} file."""
@@ -168,7 +213,8 @@ def build(target_folder=None):
     config.update(loaded_config)
     python_version = config["python_version"]
     program_name = config["program_name"]
-
+    print("using total config with defaults:")
+    print(config)
     if "gui" in config:
         gui = config["gui"]
     else:
@@ -195,9 +241,10 @@ def build(target_folder=None):
 
     # Copy appfolder contents to the build folder
     appfolder = os.path.join(build_folder, 'appfolder')
-    print(appfolder)
+    #print(appfolder)
     if not os.path.exists(appfolder):
         os.makedirs(appfolder)
+
 
     # Copy contents of the user's appfolder into the new appfolder
     excluded_files = set()
@@ -217,8 +264,22 @@ def build(target_folder=None):
     if not os.path.isfile(os.path.join(appfolder,ICON_NAME)):
         shutil.copyfile(get_default_icon(),os.path.join(appfolder,ICON_NAME))
 
-    
-    script = generate_nsis_script(config, program_name)     
+    active_addins = {}
+    if "addins" in config:
+        active_addin_relpaths = []
+        for addin_name in config["addins"]:
+            if addin_name in ADDINS_LIBRARY:
+                active_addins[addin_name] = ADDINS_LIBRARY[addin_name]["relpath"]
+                active_addin_relpaths.append(ADDINS_LIBRARY[addin_name]["relpath"])
+            else:
+                print(f"addin {addin_name} is not supported. Available are {list(ADDINS_LIBRARY.keys())}")
+
+    if len(active_addin_relpaths) > 0:
+        inject_addins_to_main(os.path.join(appfolder,config["mainfile"]), active_addin_relpaths)
+    else:
+        active_addin_relpaths = None
+
+    script = generate_nsis_script(config, program_name,active_addins)     
     nsis_file = os.path.join(build_folder,"installer.nsi")
     makensis_path = importlib.resources.files('dumbjuice.bin') / 'nsis' / 'makensis.exe'
     with open(nsis_file ,"w") as outfile:
@@ -238,201 +299,4 @@ def build(target_folder=None):
     except subprocess.CalledProcessError as e:
         print("NSIS build failed:\n", e.stderr)
 
-    #TODO: fix addins with nsis 
-    #if config["addins"] is not None:
-    #    with open(os.path.join("dumbjuice_build","appfolder",config["mainfile"]),"r",encoding="utf-8") as infile:
-    #        original_main_content = infile.read()
-
-    #    with open(os.path.join("dumbjuice_build","appfolder",config["mainfile"]),"w",encoding="utf-8") as outfile:
-    #        outfile.write(addins_PATH_import_insert() + "\n"+ original_main_content)
-
-    # ADDINS section
-    # ADDINS ARE BEYOND JANK, dear lord. i wanted to just set the addin paths in the arguments of the .lnk shortcuts, but no go. So it is this horribleness instead
-    #environment_paths_to_use = []
-    #ps1_addins_install_string = ""
-    #if config["addins"] is None:
-    #    pass
-    #else:
-    #    ps1_addin_vars = ""
-    #    for addin in config["addins"]:
-    #        if addin in addins_environment_variable_paths:
-    #            ps1_addin_vars += addins_environment_variable_paths[addin]
-    #            environment_paths_to_use.append(addins_environment_variable_paths[addin])
-    #    ps1_addins_install_string = addins.ffmpeg
-
-    #saved_paths = ",".join(environment_paths_to_use)
-    #ps1_addins_path_string = f"""
-    # read json config
-    #$DumbJuiceConfigPath = "$programAppFolder\\dumbjuice.conf"
-    #$jsonData = Get-Content -Path $DumbJuiceConfigPath -Raw | ConvertFrom-Json
-    #$addins_environement_variable_paths = @({saved_paths})
-    #if (-not $jsonData.PSObject.Properties["addin_paths"]) {{
-    #  $jsonData | Add-Member -MemberType NoteProperty -Name "addin_paths" -Value @()
-    #}}
-    #$jsonData.addin_paths = $addins_environement_variable_paths
-    #$jsonData | ConvertTo-Json -Depth 10 | Set-Content -Path $DumbJuiceConfigPath
-
-#"""
     
-#    build_ps1_script = f"""# Configuration
-#$pythonVersion = "{python_version}"
-
-#{logos} 
-
-# Get the current user's home directory and extract the drive letter
-#$homeDirectory = [System.Environment]::GetFolderPath('UserProfile')
-#$driveLetter = $homeDirectory.Substring(0, 2)  # Get the drive letter (e.g., C: or D:)
-
-# Construct the DumbJuice path dynamically
-#$dumbJuicePath = Join-Path -Path $driveLetter -ChildPath "DumbJuice"
-
-# Create the directory if it doesn't exist
-#New-Item -ItemType Directory -Path $dumbJuicePath -Force | Out-Null
-
-#Write-Output "DumbJuice path: $dumbJuicePath"
-
-#$pythonInstallPath = "$dumbJuicePath\\python\\$pythonVersion"
-#$programName = "{program_name}"
-#$programPath = "$dumbJuicePath\\programs\\$programName"
-#$programAppFolder = "$programPath\\appfolder"
-#$sourceFolder = "$PSScriptRoot"  
-#$venvPath = "$programPath\\venv"
-#$pythonExe = "$pythonInstallPath\\python.exe"
-#$pythonInstallerPath = "$env:TEMP\\python-installer.exe"
-
-# Set paths for the downloaded program files (the ones inside 'appfolder')
-#$requirementsFile = "$programAppFolder\\requirements.txt"
-#$scriptToRun = "$sourceFolder\\{config["mainfile"]}"
-
-# Set path to the icon file
-#$iconFile = "$programAppFolder\\{ICON_NAME}"  # Make sure you have the .ico file in appfolder
-
-# Ensure DumbJuice folder exists
-#New-Item -ItemType Directory -Path $dumbJuicePath -Force | Out-Null
-
-# Check if Python version is installed
-#if (!(Test-Path "$pythonExe")) {{
-#    Write-Output "Python $pythonVersion not found. Downloading..."
-#    Invoke-WebRequest -Uri "https://www.python.org/ftp/python/$pythonVersion/python-$pythonVersion-amd64.exe" -OutFile $pythonInstallerPath
-
-#    Write-Output "Installing Python..."
-#    Start-Process -FilePath $pythonInstallerPath -ArgumentList "/quiet InstallAllUsers=0 PrependPath=0 Include_test=0 TargetDir=$pythonInstallPath" -Wait
-
-    # Remove installer after installation
-#    Remove-Item $pythonInstallerPath -Force
-#}} else {{
-#    Write-Output "Python $pythonVersion is already installed."
-#}}
-
-# Ensure program directory exists
-#New-Item -ItemType Directory -Path $programPath -Force | Out-Null
-
-# Ensure appfolder inside the program folder exists
-#New-Item -ItemType Directory -Path $programAppFolder -Force | Out-Null
-
-# Copy the program files from appfolder (installer folder) to the appfolder inside the program folder
-#Write-Output "Copying application files to $programAppFolder..."
-#Copy-Item -Path "$sourceFolder\\*" -Recurse -Destination $programAppFolder -Force
-
-# Create virtual environment if not exists
-#if (!(Test-Path "$venvPath")) {{
-#    Write-Output "Creating virtual environment..."
-#    & "$pythonExe" -m venv "$venvPath"
-#}}
-
-# Install dependencies
-#Write-Output "Installing dependencies..."
-#& "$venvPath\\Scripts\\python.exe" -m pip install --upgrade pip
-#& "$venvPath\\Scripts\\python.exe" -m pip install -r $requirementsFile
-
-# Install addins (if any)
-#{ps1_addins_install_string}
-#{ps1_addins_path_string}
-
-# Create shortcut to run the program
-#$shortcutPath = "$programPath\\$programName.lnk"
-#$targetPath = "$venvPath\\Scripts\\{python_executable}.exe"
-#$arguments = "`"$programAppFolder\\{config["mainfile"]}`""
-#Write-Output "Creating shortcut..."
-#$WScriptShell = New-Object -ComObject WScript.Shell
-#$Shortcut = $WScriptShell.CreateShortcut($shortcutPath)
-#$Shortcut.TargetPath = $targetPath
-#$Shortcut.Arguments = $arguments
-#$Shortcut.WorkingDirectory = $programAppFolder
-#$Shortcut.IconLocation = $iconFile  # Set the icon location for the shortcut
-#$Shortcut.WindowStyle = 1
-#$Shortcut.Save()
-
-# Copy the shortcut to the Desktop
-#$desktopPath = [System.Environment]::GetFolderPath('Desktop')
-#$desktopShortcutPath = "$desktopPath\$programName.lnk"
-
-#Write-Output "Copying shortcut to Desktop..."
-#Copy-Item -Path $shortcutPath -Destination $desktopShortcutPath
-#Write-Output "Shortcut copied to Desktop."
-
-#$debugShortcutPath = "$programPath\\$programName.debug.lnk"
-#$debugExecutablePath = "$venvPath\\Scripts\\python.exe"
-
-#Write-Output "Creating debug launcher..."
-#$WScriptShell = New-Object -ComObject WScript.Shell
-#$Shortcut = $WScriptShell.CreateShortcut($debugShortcutPath)
-#$Shortcut.TargetPath = $debugExecutablePath
-#$Shortcut.Arguments = "-i $arguments "
-#$Shortcut.WorkingDirectory = $programAppFolder
-#$Shortcut.IconLocation = $iconFile  # Set the icon location for the shortcut
-#$Shortcut.WindowStyle = 1
-#$Shortcut.Save()
-
-#"""
-    
-#    build_ps1_script += """
-
-#Write-Output "Installation complete. Use the shortcut to run $programName!"
-#"""
-#    #build_ps1_path = os.path.join(appfolder, "build.ps1")
-#    #with open(build_ps1_path, "w") as ps1_file:
-#    #    ps1_file.write(build_ps1_script)
-
-    #print(f"Build files created at: {build_folder}")
-#    os.makedirs(dist_folder, exist_ok=True)
-#    shutil.make_archive(os.path.join(dist_folder, zip_filename), 'zip', build_folder)
-
-
-#if __name__ == "__main__":
-    #import subprocess
-    #from pathlib import Path
-    #project_name = "gui_example_app"
-    #local_path = find_makensis()
-    #current_folder = Path(os.getcwd()).parent
-    #project_path = os.path.join(current_folder,"examples",project_name)
-    #config_path = os.path.join(project_path,"dumbjuice.conf")
-    
-    #build(target_folder=project_path)
-    
-    
-    #config_path = os.path.join(target_folder,"dumbjuice.conf")
-    #try:
-    #    with open(config_path, "r") as f:
-    #        loaded_config = json.load(f)
-    #except (FileNotFoundError, json.JSONDecodeError):
-    #    print("Error: Invalid or missing dumbjuice.conf file.")
-    #generate_nsis_script(conf, output_path)
-    #nsis_bin_path = os.path.join(project_path,"bin")
-    #script = generate_nsis_script(loaded_config, project_name,nsis_bin_path)
-    #nsis_file = os.path.join(Path(project_path).parent,"installer.nsi")
-    #with open(nsis_file ,"w") as outfile:
-    #    outfile.write(script)
-
-    #nsis_path = os.path.join(os.getcwd(),"bin","nsis","makensis")
-
-    #try:
-    #    result = subprocess.run(
-    #        [nsis_path, nsis_file],
-    #        check=True,
-    #        capture_output=True,
-    #        text=True
-    #    )
-    #    print("NSIS build output:\n", result.stdout)
-    #except subprocess.CalledProcessError as e:
-    #    print("NSIS build failed:\n", e.stderr)
