@@ -48,6 +48,10 @@ def generate_nsis_script(conf, project_name,active_addins=None):
 !define PYTHON_INSTALLER "python-{python_version}-amd64.exe"
 !define PYTHON_URL "https://www.python.org/ftp/python/{python_version}/python-{python_version}-amd64.exe"
 
+Var PYTHON_DL_RESULT
+var PYTHON_DIR
+var APP_DIR
+
 OutFile "install.exe"
 InstallDir "$PROGRAMFILES\\Dumbjuice"
 RequestExecutionLevel admin
@@ -58,29 +62,29 @@ Page instfiles
 Section "Install ${{APP_NAME}}"
 
   ; Define paths
-  StrCpy $0 "$INSTDIR\\python\\{python_version}"
-  StrCpy $1 "$INSTDIR\\programs\\{app_name}"
+  StrCpy $PYTHON_DIR "$INSTDIR\\python\\{python_version}"
+  StrCpy $APP_DIR "$INSTDIR\\programs\\{app_name}"
 
   ; Create folders
-  CreateDirectory $0
-  CreateDirectory $1
+  CreateDirectory $PYTHON_DIR
+  CreateDirectory $APP_DIR
 
   ; Set output to app folder
-  SetOutPath $1
+  SetOutPath $APP_DIR
 
   ; Copy all app files
   File /r "appfolder\\*.*"
 
   ; Check if Python version already exists
-  IfFileExists "$0\\python.exe" skip_python_install
+  IfFileExists "$PYTHON_DIR\\python.exe" skip_python_install
 
   ; Download Python installer
   DetailPrint "Downloading Python from: ${{PYTHON_URL}}"
   inetc::get /CAPTION "Downloading Python..." /RESUME "" "${{PYTHON_URL}}" "$TEMP\${{PYTHON_INSTALLER}}" /END
-  Pop $2
-  DetailPrint "Download result: $2"
-  StrCmp $2 "OK" download_ok
-  MessageBox MB_OK "Download failed: $2"
+  Pop $PYTHON_DL_RESULT
+  DetailPrint "Download result: $PYTHON_DL_RESULT"
+  StrCmp $PYTHON_DL_RESULT "OK" download_ok
+  MessageBox MB_OK "Download failed: $PYTHON_DL_RESULT"
   Abort
 
   download_ok:
@@ -95,18 +99,18 @@ skip_python_install:
 
   ; Create virtual environment in app folder
   DetailPrint "Creating virtual environment..."
-  ExecWait '"$0\\python.exe" -m venv "$1\\venv"'
+  ExecWait '"$PYTHON_DIR\\python.exe" -m venv "$APP_DIR\\venv"'
 
   ; Install requirements into venv
   DetailPrint "Installing dependencies..."
-  ExecWait '"$1\\venv\\Scripts\\pip.exe" install -r "$1\\requirements.txt"'
+  ExecWait '"$APP_DIR\\venv\\Scripts\\pip.exe" install -r "$APP_DIR\\requirements.txt"'
 
   ; Install addins
   {addins_scripts}
 
   ; Create shortcut on desktop
   DetailPrint "Creating desktop shortcut..."
-  CreateShortCut "$DESKTOP\\${{APP_NAME}}.lnk" "$1\\venv\\Scripts\\pythonw.exe" '"$1\\main.py"' "$INSTDIR\\programs\\{app_name}\\djicon.ico"
+  CreateShortCut "$DESKTOP\\${{APP_NAME}}.lnk" "$APP_DIR\\venv\\Scripts\\pythonw.exe" '"$APP_DIR\\main.py"' "$INSTDIR\\programs\\{app_name}\\djicon.ico"
   Goto done
 
 cancel_download:
