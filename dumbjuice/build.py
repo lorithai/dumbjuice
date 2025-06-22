@@ -83,7 +83,7 @@ Section "Install ${{APP_NAME}}"
   inetc::get /CAPTION "Downloading Python..." /RESUME "" "${{PYTHON_URL}}" "$TEMP\${{PYTHON_INSTALLER}}" /END
   Pop $PYTHON_DL_RESULT
   DetailPrint "Download result: $PYTHON_DL_RESULT"
-  StrCmp $PYTHON_DL_RESULT "OK" download_ok
+  StrCmp $PYTHON_DL_RESULT "OK" download_ok cancel_download
   MessageBox MB_OK "Download failed: $PYTHON_DL_RESULT"
   Abort
 
