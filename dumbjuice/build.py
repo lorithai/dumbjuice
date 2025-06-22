@@ -106,8 +106,7 @@ skip_python_install:
 
   ; Create shortcut on desktop
   DetailPrint "Creating desktop shortcut..."
-  CreateShortCut "$DESKTOP\\${{APP_NAME}}.lnk" "$1\\venv\\Scripts\\pythonw.exe" '"$1\\main.py"'
-
+  CreateShortCut "$DESKTOP\\${{APP_NAME}}.lnk" "$1\\venv\\Scripts\\pythonw.exe" '"$1\\main.py"' "$INSTDIR\\programs\\{app_name}\\djicon.ico"
   Goto done
 
 cancel_download:
