@@ -28,15 +28,25 @@ def generate_nsis_script(conf, project_name,active_addins=None):
         meta = ADDINS_LIBRARY[addin_name]
         zip_name = addin_name + ".zip"
         install_path = os.path.join("$INSTDIR", meta["relpath"].replace("/", "\\"))
-        addin_blocks.append(f"""
-    DetailPrint "Installing add-in: {addin_name}"
-    inetc::get "{meta['installer_source']}" "$TEMP\\{zip_name}" /END
-    Pop $0
-    StrCmp $0 "OK" 0 +3
-        DetailPrint "Extracting {addin_name}..."
-        nsisunz::Unzip "$TEMP\\{zip_name}" "{install_path}"
-        Delete "$TEMP\\{zip_name}"
-    """)
+        install_check_path = os.path.join(install_path, "*.*")
+
+        skip_label = f"skip_addin_{addin_name}"
+        
+        block = f"""
+        ; --- {addin_name} add-in installation ---
+        IfFileExists "{install_check_path}" {skip_label}
+        
+        DetailPrint "Installing add-in: {addin_name}"
+        inetc::get "{meta['installer_source']}" "$TEMP\\{zip_name}" /END
+        Pop $0
+        StrCmp $0 "OK" 0 +3
+            DetailPrint "Extracting {addin_name}..."
+            nsisunz::Unzip "$TEMP\\{zip_name}" "{install_path}"
+            Delete "$TEMP\\{zip_name}"
+        
+        {skip_label}:
+        """
+        addin_blocks.append(block)
     addins_scripts = "\n".join(addin_blocks)
 
     script = f"""
@@ -288,8 +298,8 @@ def build(target_folder=None):
     with open(nsis_file ,"w") as outfile:
         outfile.write(script)
 
-    print(nsis_file)
-    print(makensis_path)
+    #print(nsis_file)
+    #print(makensis_path)
 
     try:
         result = subprocess.run(
@@ -301,5 +311,8 @@ def build(target_folder=None):
         print("NSIS build output:\n", result.stdout)
     except subprocess.CalledProcessError as e:
         print("NSIS build failed:\n", e.stderr)
+
+
+    
 
     
