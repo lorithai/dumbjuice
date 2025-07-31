@@ -6,12 +6,28 @@ import json
 import sys
 import subprocess
 import stat
+import zipfile
 #import dumbjuice.addins as addins
 
 ICON_NAME = "djicon.ico"
 HARDCODED_IGNORES = {"dumbjuice_build","dumbjuice_dist",".gitignore",".git",".git/","*.git"}
 default_config = {"gui":False,"ignore":None,"use_gitignore":False,"include":None,"addins":None,"mainfile":"main.py"}
 ADDINS_LIBRARY = {"ffmpeg":{"relpath":"addins/ffmpeg/bin","installer_source":"https://www.gyan.dev/ffmpeg/builds/ffmpeg-release-essentials.zip"}}
+
+def create_dist_zip(build_folder, dist_folder, zip_filename):
+    os.makedirs(dist_folder, exist_ok=True)
+    zip_path = os.path.join(dist_folder, zip_filename + ".zip")
+
+    with zipfile.ZipFile(zip_path, 'w', compression=zipfile.ZIP_DEFLATED) as zipf:
+        for root, _, files in os.walk(build_folder):
+            for file in files:
+                if file == "install.nsi":
+                    continue  # optionally skip the nsis script
+                abs_path = os.path.join(root, file)
+                rel_path = os.path.relpath(abs_path, build_folder)
+                zipf.write(abs_path, rel_path)
+
+    print(f"Created zip archive at: {zip_path}")
 
 def handle_remove_readonly(func, path, exc_info):
     # Clear the read-only flag and try again
@@ -252,7 +268,6 @@ def build(target_folder=None):
     dist_folder = os.path.join(os.getcwd(), "dumbjuice_dist")
     zip_filename = config["program_name"]
     source_folder = target_folder
-    #print(source_folder)
     # Ensure build folder exists
 
     if os.path.exists(build_folder):
@@ -321,6 +336,8 @@ def build(target_folder=None):
     except subprocess.CalledProcessError as e:
         print("NSIS build failed:\n", e.stderr)
 
+    
+    create_dist_zip(build_folder, dist_folder, zip_filename)
 
     
 
