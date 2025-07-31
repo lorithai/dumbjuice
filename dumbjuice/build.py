@@ -232,7 +232,7 @@ def build(target_folder=None):
     config.update(loaded_config)
     python_version = config["python_version"]
     program_name = config["program_name"]
-    print("using total config with defaults:")
+    print("Using combined config with defaults:")
     print(config)
     if "gui" in config:
         gui = config["gui"]
@@ -252,7 +252,7 @@ def build(target_folder=None):
     dist_folder = os.path.join(os.getcwd(), "dumbjuice_dist")
     zip_filename = config["program_name"]
     source_folder = target_folder
-    print(source_folder)
+    #print(source_folder)
     # Ensure build folder exists
 
     if os.path.exists(build_folder):
@@ -263,8 +263,6 @@ def build(target_folder=None):
             print("Make sure the files (especially install.exe) are not open or locked.")
             sys.exit(1)
 
-    #if os.path.exists(build_folder):
-    #    shutil.rmtree(build_folder) # remove folder
     os.makedirs(build_folder)
 
     # Copy appfolder contents to the build folder
@@ -272,7 +270,6 @@ def build(target_folder=None):
     #print(appfolder)
     if not os.path.exists(appfolder):
         os.makedirs(appfolder)
-
 
     # Copy contents of the user's appfolder into the new appfolder
     excluded_files = set()
@@ -300,7 +297,7 @@ def build(target_folder=None):
                 active_addins[addin_name] = ADDINS_LIBRARY[addin_name]["relpath"]
                 active_addin_relpaths.append(ADDINS_LIBRARY[addin_name]["relpath"])
             else:
-                print(f"addin {addin_name} is not supported. Available are {list(ADDINS_LIBRARY.keys())}")
+                print(f"addin '{addin_name}' is not supported. Available are {list(ADDINS_LIBRARY.keys())}")
 
     if len(active_addin_relpaths) > 0:
         inject_addins_to_main(os.path.join(appfolder,config["mainfile"]), active_addin_relpaths)
@@ -312,9 +309,6 @@ def build(target_folder=None):
     makensis_path = importlib.resources.files('dumbjuice.bin') / 'nsis' / 'makensis.exe'
     with open(nsis_file ,"w") as outfile:
         outfile.write(script)
-
-    #print(nsis_file)
-    #print(makensis_path)
 
     try:
         result = subprocess.run(
