@@ -40,11 +40,11 @@ def find_makensis():
         return local_path
     raise RuntimeError("NSIS not found")
 
-def generate_nsis_script(conf, active_addins=None):
+def generate_nsis_script(conf, active_addins=None,python_exe="python.exe"):
     python_version = conf['python_version']
     app_name = conf['program_name']
     binpath = str(importlib.resources.files('dumbjuice.bin').joinpath('').resolve())
-
+    mainfile = conf['mainfile']
     addin_blocks = []
     for addin_name in active_addins:
         meta = ADDINS_LIBRARY[addin_name]
@@ -142,7 +142,8 @@ skip_python_install:
 
   ; Create shortcut on desktop
   DetailPrint "Creating desktop shortcut..."
-  CreateShortCut "$DESKTOP\\${{APP_NAME}}.lnk" "$APP_DIR\\venv\\Scripts\\pythonw.exe" '"$APP_DIR\\main.py"' "$INSTDIR\\programs\\{app_name}\\djicon.ico"
+  CreateShortCut "$DESKTOP\\${{APP_NAME}}.lnk" "$APP_DIR\\venv\\Scripts\\{python_exe}" '"$APP_DIR\\{mainfile}"' "$INSTDIR\\programs\\{app_name}\\djicon.ico"
+  CreateShortCut "$APP_DIR\\${{APP_NAME}}_debug.lnk" "$APP_DIR\\venv\\Scripts\\python.exe" '"$APP_DIR\\{mainfile}"' "$APP_DIR\\djicon.ico"
   Goto done
 
 cancel_download:
@@ -254,11 +255,11 @@ def build(target_folder=None):
         gui = config["gui"]
     else:
         gui = False
-         
+
     if gui:
-        python_executable = "pythonw"
+        python_executable = "pythonw.exe"
     else:
-        python_executable = "python"
+        python_executable = "python.exe"
     # Check if the specified Python version is available
     if not is_python_version_available(python_version):
         print(f"Error: Python version {python_version} is not available for download.")
@@ -319,7 +320,7 @@ def build(target_folder=None):
     else:
         active_addin_relpaths = None
 
-    script = generate_nsis_script(config, active_addins)     
+    script = generate_nsis_script(config, active_addins,python_executable)     
     nsis_file = os.path.join(build_folder,"installer.nsi")
     makensis_path = importlib.resources.files('dumbjuice.bin') / 'nsis' / 'makensis.exe'
     with open(nsis_file ,"w") as outfile:
