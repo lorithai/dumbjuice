@@ -5,6 +5,7 @@ import importlib
 import json
 import sys
 import subprocess
+import stat
 #import dumbjuice.addins as addins
 
 ICON_NAME = "djicon.ico"
@@ -12,13 +13,18 @@ HARDCODED_IGNORES = {"dumbjuice_build","dumbjuice_dist",".gitignore",".git",".gi
 default_config = {"gui":False,"ignore":None,"use_gitignore":False,"include":None,"addins":None,"mainfile":"main.py"}
 ADDINS_LIBRARY = {"ffmpeg":{"relpath":"addins/ffmpeg/bin","installer_source":"https://www.gyan.dev/ffmpeg/builds/ffmpeg-release-essentials.zip"}}
 
+def handle_remove_readonly(func, path, exc_info):
+    # Clear the read-only flag and try again
+    os.chmod(path, stat.S_IWRITE)
+    func(path)
+
 def find_makensis():
     local_path = os.path.join(os.path.dirname(__file__), "bin", "nsis", "makensis.exe") 
     if os.path.isfile(local_path):
         return local_path
     raise RuntimeError("NSIS not found")
 
-def generate_nsis_script(conf, project_name,active_addins=None):
+def generate_nsis_script(conf, active_addins=None):
     python_version = conf['python_version']
     app_name = conf['program_name']
     binpath = str(importlib.resources.files('dumbjuice.bin').joinpath('').resolve())
@@ -248,8 +254,17 @@ def build(target_folder=None):
     source_folder = target_folder
     print(source_folder)
     # Ensure build folder exists
+
     if os.path.exists(build_folder):
-        shutil.rmtree(build_folder) # remove folder
+        try:
+            shutil.rmtree(build_folder, onerror=handle_remove_readonly)
+        except Exception as e:
+            print(f"Could not delete existing build folder: {e}")
+            print("Make sure the files (especially install.exe) are not open or locked.")
+            sys.exit(1)
+
+    #if os.path.exists(build_folder):
+    #    shutil.rmtree(build_folder) # remove folder
     os.makedirs(build_folder)
 
     # Copy appfolder contents to the build folder
@@ -292,7 +307,7 @@ def build(target_folder=None):
     else:
         active_addin_relpaths = None
 
-    script = generate_nsis_script(config, program_name,active_addins)     
+    script = generate_nsis_script(config, active_addins)     
     nsis_file = os.path.join(build_folder,"installer.nsi")
     makensis_path = importlib.resources.files('dumbjuice.bin') / 'nsis' / 'makensis.exe'
     with open(nsis_file ,"w") as outfile:
