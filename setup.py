@@ -27,6 +27,7 @@ setup(
     packages=find_packages(include=['dumbjuice', 'dumbjuice.*']),
         package_data={
         'dumbjuice.assets': ['djicon.ico'],
+        'dumbjuice.bin': ['makensis.exe', 'plugins/inetc.dll'],
     },
     include_package_data=True,  # Ensures non-Python files are included
     install_requires=[
