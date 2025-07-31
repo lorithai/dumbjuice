@@ -248,7 +248,6 @@ def build(target_folder=None):
     config = default_config.copy()
     config.update(loaded_config)
     python_version = config["python_version"]
-    program_name = config["program_name"]
     print("Using combined config with defaults:")
     print(config)
     if "gui" in config:
@@ -260,6 +259,7 @@ def build(target_folder=None):
         python_executable = "pythonw.exe"
     else:
         python_executable = "python.exe"
+
     # Check if the specified Python version is available
     if not is_python_version_available(python_version):
         print(f"Error: Python version {python_version} is not available for download.")
