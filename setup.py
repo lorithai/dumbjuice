@@ -30,7 +30,7 @@ setup(
         'dumbjuice.bin': ['makensis.exe', 'plugins/inetc.dll'],
     },
     include_package_data=True,  # Ensures non-Python files are included
-    install_requires=[
+    install_requires=["pillow==11.3.0", "requests"
         # Add any external dependencies your package needs here
     ],
     python_requires=">=3.6",
