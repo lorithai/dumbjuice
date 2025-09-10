@@ -25,8 +25,8 @@ pip install dumbjuice
 }
 ```
 * Run `dumbjuice-build`
-* Test script by running the `install.bat` file in `dumbjuice_build/`
-* Send the zipped file in `dumbjuice_dist` to those you want
+* Test script by running the `install.exe` file in `dumbjuice_build/`
+* Send the zipped file in `dumbjuice_dist` to those you want or host it somewhere
 
 ### Full instructions
 #### Recommended project structure
@@ -118,14 +118,13 @@ project_folder/
 
 ## What Happens During the Build Process?
 * Your program files, including the `requirements.txt` and `dumbjuice.conf`, are copied into a new folder structure in `dumbjuice_build/appfolder/`
-* A `build.ps1` file is created that is responsible for installing the program and necessary modules for the user is added `dumbjuice_build/appfolder/`
-* An `install.bat` file which initiates the `build.ps1` on the users end when started is added to `dumbjuice_build/`
+* A `install.exe` file is created that is responsible for installing the program and necessary modules for the user is added `dumbjuice_build/`
 * The entire `dumbjuice_build` folder is zipped and added to `dumbjuice_dist`
 
 ## What happens during the install process?
 * DumbJuice looks for already existing DumbJuice installation and adds it if necessary
 * DumbJuice script creates the program structure in `/DumbJuice/Programs/<program_name>` and copies over the files in `appfolder/`
-* DumbJuice script install the defined python version (if not present in DumbJuice already), creates a venv for the program and installs all modules defined in `requirements.txt`
+* DumbJuice script installs the defined python version (if not present in DumbJuice already), creates a venv for the program and installs all modules defined in `requirements.txt`
 * DumbJuice script creates shortcuts for the user which starts the program
 
 ## Starting a program
