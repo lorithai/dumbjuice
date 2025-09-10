@@ -158,6 +158,11 @@ Remove previous dist and update version number in setup.py
 ### Build 
 ```python setup.py sdist bdist_wheel```
 
+### Debugging pypi locally
+
+```pip install dist/dumbjuice-*.whl```
+
+
 ### Upload to pypi
 
 ```pip install twine``` (first time)
