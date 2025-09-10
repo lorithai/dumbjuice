@@ -71,14 +71,14 @@ def generate_nsis_script(conf, active_addins=None,python_exe="python.exe"):
         addin_blocks.append(block)
     addins_scripts = "\n".join(addin_blocks)
 
+
     script = f"""
 !addplugindir "{binpath}"
 !include "FileFunc.nsh"
 !include "LogicLib.nsh"
 !define APP_NAME "{app_name}"
 !define PYTHON_VERSION "{python_version}"
-!define PYTHON_INSTALLER "python-{python_version}-amd64.exe"
-!define PYTHON_URL "https://www.python.org/ftp/python/{python_version}/python-{python_version}-amd64.exe"
+!define PYTHON_URL "https://www.python.org/ftp/python/{python_version}/python-{python_version}-embed-amd64.zip"
 
 Var PYTHON_DL_RESULT
 var PYTHON_DIR
@@ -91,7 +91,7 @@ RequestExecutionLevel admin
 Page directory
 Page instfiles
 
-Section "Install ${{APP_NAME}}"
+Section "Install {app_name}"
 
   ; Define paths
   StrCpy $PYTHON_DIR "$INSTDIR\\python\\{python_version}"
@@ -110,7 +110,7 @@ Section "Install ${{APP_NAME}}"
   ; Check if Python version already exists
   IfFileExists "$PYTHON_DIR\\python.exe" skip_python_install
 
-  ; Download Python installer
+  ; Download Python embeddable package
   DetailPrint "Downloading Python from: ${{PYTHON_URL}}"
   inetc::get /CAPTION "Downloading Python..." /RESUME "" "${{PYTHON_URL}}" "$TEMP\${{PYTHON_INSTALLER}}" /END
   Pop $PYTHON_DL_RESULT
@@ -123,9 +123,15 @@ Section "Install ${{APP_NAME}}"
   DetailPrint "Download succeeded."
 
   ; Install Python
-  DetailPrint "Installing Python ${{PYTHON_VERSION}}..."
-  DetailPrint "$PROGRAMFILES\\Dumbjuice\\python\\{python_version}"
-  ExecWait '"$TEMP\\${{PYTHON_INSTALLER}}" /quiet InstallAllUsers=0 PrependPath=0 Include_test=0 TargetDir="$PROGRAMFILES\\Dumbjuice\\python\\{python_version}"'
+  DetailPrint "Extracting Python {python_version}..."
+  DetailPrint "From $TEMP\python-{python_version}-embed-amd64.zip -> $PYTHON_DIR"
+  nsisunz::Unzip "$TEMP\python-{python_version}-embed-amd64.zip" "$PYTHON_DIR"
+  Pop $0
+  DetailPrint "Unzip result: $0"
+  StrCmp $0 "success" unzip_ok
+    MessageBox MB_OK "Unzip failed: $0"
+    Abort
+  unzip_ok:
 
 skip_python_install:
 
