@@ -1,13 +1,22 @@
 import os
 import shutil
 import requests
+from bs4 import BeautifulSoup
 import importlib
 import json
 import sys
 import subprocess
 import stat
 import zipfile
+import re
+from packaging.version import Version, InvalidVersion
+
 #import dumbjuice.addins as addins
+
+base_path = os.path.dirname(__file__)
+with open(os.path.join(base_path,"__version__.py"),"r") as infile:
+    dj_version = infile.readline().split("=")[-1].strip()[1:-1]+".0"
+print(dj_version)
 
 ICON_NAME = "djicon.ico"
 HARDCODED_IGNORES = {"dumbjuice_build","dumbjuice_dist",".gitignore",".git",".git/","*.git"}
@@ -41,7 +50,17 @@ def find_makensis():
     raise RuntimeError("NSIS not found")
 
 def generate_nsis_script(conf, active_addins=None,python_exe="python.exe"):
-    python_version = conf['python_version']
+    python_version = conf['python_version'].split(".")
+    py_major = python_version[0]
+    py_minor = python_version[1]
+    if len(python_version) == 3:
+        major_minor = ".".join(python_version[:-1])
+    elif len(python_version) == 2:
+        major_minor = ".".join(python_version)
+    else:
+        raise RuntimeError(f"Invalid python version number {python_version}")
+    python_version = get_latest_windows_python(major_minor)
+    
     app_name = conf['program_name']
     binpath = str(importlib.resources.files('dumbjuice.bin').joinpath('').resolve())
     mainfile = conf['mainfile']
@@ -72,85 +91,114 @@ def generate_nsis_script(conf, active_addins=None,python_exe="python.exe"):
     addins_scripts = "\n".join(addin_blocks)
 
     script = f"""
+# -*- coding: utf-8 -*-
 !addplugindir "{binpath}"
 !include "FileFunc.nsh"
 !include "LogicLib.nsh"
-!define APP_NAME "{app_name}"
-!define PYTHON_VERSION "{python_version}"
-!define PYTHON_INSTALLER "python-{python_version}-amd64.exe"
-!define PYTHON_URL "https://www.python.org/ftp/python/{python_version}/python-{python_version}-amd64.exe"
 
-Var PYTHON_DL_RESULT
-var PYTHON_DIR
-var APP_DIR
+VIProductVersion "{dj_version}"
+VIFileVersion "1.0.0.0"
+VIAddVersionKey /LANG=1033 "CompanyName" "Larks Wombat Systems"
+VIAddVersionKey /LANG=1033 "FileDescription" "DumbJuice Installer"
+VIAddVersionKey /LANG=1033 "LegalCopyright" "2025 Larks Wombat Systems"
+VIAddVersionKey /LANG=1033 "ProductName" "DumbJuice"
+VIAddVersionKey /LANG=1033 "ProductVersion" "{dj_version}"
+VIAddVersionKey /LANG=1033 "FileVersion" "1.0.0.0"
 
+; Static variables (requires curly brackets, double in this case)
+!define PYENV_DIR "$PROFILE\\.pyenv\\pyenv-win"
+!define PYENV_REPO "https://github.com/pyenv-win/pyenv-win/archive/refs/heads/master.zip"
+!define DJ_INSTALL_DIR "$PROFILE\\.dumbjuice"
+
+; Runtime variables (doesn't need curly brackets)
+var DJ_PYTHON_DIR
+var DJ_APP_DIR
+
+Name "Dumbjuice installer for {app_name}"
 OutFile "install.exe"
-InstallDir "$PROGRAMFILES\\Dumbjuice"
+InstallDir "${{DJ_INSTALL_DIR}}" ; becomes INSTDIR
 RequestExecutionLevel admin
 
-Page directory
+; UI elements 
+; Page directory
 Page instfiles
 
-Section "Install ${{APP_NAME}}"
+Section "Install {app_name}"
 
   ; Define paths
-  StrCpy $PYTHON_DIR "$INSTDIR\\python\\{python_version}"
-  StrCpy $APP_DIR "$INSTDIR\\programs\\{app_name}"
+  StrCpy $DJ_PYTHON_DIR "$INSTDIR\\python\\{python_version}"
+  StrCpy $DJ_APP_DIR "$INSTDIR\\programs\\{app_name}"
 
   ; Create folders
-  CreateDirectory $PYTHON_DIR
-  CreateDirectory $APP_DIR
+  CreateDirectory $DJ_APP_DIR
 
   ; Set output to app folder
-  SetOutPath $APP_DIR
+  SetOutPath $DJ_APP_DIR
 
   ; Copy all app files
   File /r "appfolder\\*.*"
+  
+  ; --- Check for Python ---
+  ; 1. Check Python version is in DumbJuice
+  IfFileExists "$DJ_PYTHON_DIR\\python.exe" Install_venv
 
-  ; Check if Python version already exists
-  IfFileExists "$PYTHON_DIR\\python.exe" skip_python_install
+; Check if pyenv-win exists
+IfFileExists "${{PYENV_DIR}}\\bin\\pyenv.bat" Install_python
 
-  ; Download Python installer
-  DetailPrint "Downloading Python from: ${{PYTHON_URL}}"
-  inetc::get /CAPTION "Downloading Python..." /RESUME "" "${{PYTHON_URL}}" "$TEMP\${{PYTHON_INSTALLER}}" /END
-  Pop $PYTHON_DL_RESULT
-  DetailPrint "Download result: $PYTHON_DL_RESULT"
-  StrCmp $PYTHON_DL_RESULT "OK" download_ok cancel_download
-  MessageBox MB_OK "Download failed: $PYTHON_DL_RESULT"
-  Abort
+  ; Install pyenv-win
+  DetailPrint "Downloading pyenv-win..."
+  inetc::get /CAPTION "Downloading pyenv-win..." /RESUME "" "${{PYENV_REPO}}" "$TEMP\\pyenv-win.zip" /END
+  Pop $0
+  StrCmp $0 "OK" +2
+    Abort "Failed to download pyenv-win"
 
-  download_ok:
-  DetailPrint "Download succeeded."
+  ; Extract pyenv-win
+  nsisunz::Unzip "$TEMP\\pyenv-win.zip" "$TEMP\\pyenv-win"
+  
+  CreateDirectory "$PROFILE\\.pyenv"
+  ; Move the pyenv-win folder
+  Rename "$TEMP\\pyenv-win\\pyenv-win-master\\pyenv-win" "$PROFILE\\.pyenv\\pyenv-win"
+  
+  ; Copy the .version file (pyenv doesn't work without this)
+  CopyFiles /SILENT "$TEMP\\pyenv-win\\pyenv-win-master\\.version" "$PROFILE\\.pyenv\\"
 
-  ; Install Python
-  DetailPrint "Installing Python ${{PYTHON_VERSION}}..."
-  DetailPrint "$PROGRAMFILES\\Dumbjuice\\python\\{python_version}"
-  ExecWait '"$TEMP\\${{PYTHON_INSTALLER}}" /quiet InstallAllUsers=0 PrependPath=0 Include_test=0 TargetDir="$PROGRAMFILES\\Dumbjuice\\python\\{python_version}"'
 
-skip_python_install:
+Install_python:
+  DetailPrint "Checking Python {python_version} in pyenv..."
+  nsExec::Exec '"$PROFILE\\.pyenv\\pyenv-win\\bin\\pyenv.bat" versions | findstr {python_version}'
 
-  ; Create virtual environment in app folder
+  Pop $0
+  StrCmp $0 "0" Move_pyenv_python
+
+  DetailPrint "Installing Python {python_version} via pyenv..."
+  nsExec::ExecToLog '"$PROFILE\\.pyenv\\pyenv-win\\bin\\pyenv.bat" install {python_version}'
+
+Move_pyenv_python:
+  DetailPrint "Copying Python {python_version} to DumbJuice..."
+  CopyFiles /SILENT "$PROFILE\\.pyenv\\pyenv-win\\versions\\{python_version}\\*.*" "$INSTDIR\\python\\{python_version}"
+
+Install_venv:
+
+  ; --- Create virtual environment ---
   DetailPrint "Creating virtual environment..."
-  ExecWait '"$PYTHON_DIR\\python.exe" -m venv "$APP_DIR\\venv"'
+  ExecWait '"$DJ_PYTHON_DIR\\python.exe" -m venv "$DJ_APP_DIR\\venv"'
 
-  ; Install requirements into venv
+  ; --- Install requirements ---
   DetailPrint "Installing dependencies..."
-  ExecWait '"$APP_DIR\\venv\\Scripts\\pip.exe" install -r "$APP_DIR\\requirements.txt"'
+  ExecWait '"$DJ_APP_DIR\\venv\\Scripts\\pip.exe" install -r "$DJ_APP_DIR\\requirements.txt"'
 
   ; Install addins
   {addins_scripts}
 
   ; Create shortcut on desktop
   DetailPrint "Creating desktop shortcut..."
-  CreateShortCut "$DESKTOP\\${{APP_NAME}}.lnk" "$APP_DIR\\venv\\Scripts\\{python_exe}" '"$APP_DIR\\{mainfile}"' "$INSTDIR\\programs\\{app_name}\\djicon.ico"
-  CreateShortCut "$APP_DIR\\${{APP_NAME}}_debug.lnk" "$APP_DIR\\venv\\Scripts\\python.exe" '"$APP_DIR\\{mainfile}"' "$APP_DIR\\djicon.ico"
+  CreateShortCut "$DESKTOP\\{app_name}.lnk" "$DJ_APP_DIR\\venv\\Scripts\\{python_exe}" '"$DJ_APP_DIR\\{mainfile}"' "$INSTDIR\\programs\\{app_name}\\djicon.ico"
+  DetailPrint "Creating debug shortcut..."
+  CreateShortCut "$DJ_APP_DIR\\{app_name}_debug.lnk" "$DJ_APP_DIR\\venv\\Scripts\\python.exe" '"$DJ_APP_DIR\\{mainfile}"' "$DJ_APP_DIR\\djicon.ico"
   Goto done
 
-cancel_download:
-  MessageBox MB_OK "Python download failed or cancelled."
-
 done:
-
+MessageBox MB_OK "Installer finished. A shortcut for {app_name} has been created on the Desktop"
 SectionEnd
 """
     return script
@@ -169,17 +217,17 @@ def load_gitignore(source_folder):
 
     return ignore_patterns
 
-def inject_addins_to_main(main_py_path, addin_relpaths):
+def addins_to_main(main_py_path, addin_relpaths):
     """
-    Injects add-in PATH patching code into the top of the main.py file.
+    add-in PATH patching code into the top of the main.py file.
     Uses namespaced variables to prevent naming conflicts.
     
     Args:
         main_py_path (str): Full path to main.py (or other entrypoint).
         addin_relpaths (List[str]): List of relative paths to prepend to PATH.
     """
-    start_marker = "# >>> dumbjuice addins injection >>>"
-    end_marker = "# <<< dumbjuice addins injection <<<"
+    start_marker = "# >>> dumbjuice addins >>>"
+    end_marker = "# <<< dumbjuice addins <<<"
 
     # Generate the code block with namespaced variables (Clumsy attempt at such)
     lines = [start_marker]
@@ -193,13 +241,13 @@ def inject_addins_to_main(main_py_path, addin_relpaths):
     lines.append("    if _dj_abs_path not in os.environ['PATH']:")
     lines.append("        os.environ['PATH'] = _dj_abs_path + os.pathsep + os.environ['PATH']")
     lines.append(end_marker)
-    injected_block = "\n".join(lines) + "\n\n"
+    added_block = "\n".join(lines) + "\n\n"
 
     # Read the original content
     with open(main_py_path, "r", encoding="utf-8") as f:
         original = f.read()
 
-    # Remove any previous injected block
+    # Remove any previous added block
     if start_marker in original and end_marker in original:
         pre = original.split(start_marker)[0]
         post = original.split(end_marker)[-1]
@@ -207,15 +255,51 @@ def inject_addins_to_main(main_py_path, addin_relpaths):
     else:
         cleaned = original
 
-    # Write the new file with injection at the top
+    # Write the new file with addin at the top
     with open(main_py_path, "w", encoding="utf-8") as f:
-        f.write(injected_block + cleaned)
+        f.write(added_block + cleaned)
 
-    print(f"[dumbjuice] Injected addin paths into {main_py_path}")
+    print(f"[dumbjuice] Added addin paths into {main_py_path}")
 
 def get_default_icon():
     f"""Returns the path to the default {ICON_NAME} file."""
     return str(importlib.resources.files('dumbjuice.assets') / ICON_NAME) # / joins the paths
+
+
+def get_latest_windows_python(major_minor: str, kind="exe") -> str:
+    """
+    Find latest available Windows Python release for given major.minor.
+    kind = "exe" (full installer) or "embed" (embeddable zip).
+    Returns version string like "3.11.9".
+    """
+    base_url = "https://www.python.org/ftp/python/"
+    resp = requests.get(base_url)
+    resp.raise_for_status()
+    soup = BeautifulSoup(resp.text, "html.parser")
+
+    # collect versions matching major.minor.patch/
+    versions = []
+    for a in soup.find_all("a", href=True):
+        m = re.match(rf"^{re.escape(major_minor)}\.(\d+)/$", a["href"])
+        if m:
+            versions.append(int(m.group(1)))
+
+    versions.sort(reverse=True)  # newest first
+
+    for patch in versions:
+        v = f"{major_minor}.{patch}"
+        dir_url = f"{base_url}{v}/"
+        r = requests.get(dir_url)
+        r.raise_for_status()
+        files = r.text
+
+        if kind == "exe" and f"python-{v}-amd64.exe" in files:
+            return v
+        if kind == "embed" and f"python-{v}-embed-amd64.zip" in files:
+            return v
+
+    raise RuntimeError(f"No Windows {kind} installer found for {major_minor}")
+
 
 def is_python_version_available(python_version):
     url = f"https://www.python.org/ftp/python/{python_version}/"
@@ -316,7 +400,7 @@ def build(target_folder=None):
                 print(f"addin '{addin_name}' is not supported. Available are {list(ADDINS_LIBRARY.keys())}")
 
     if len(active_addin_relpaths) > 0:
-        inject_addins_to_main(os.path.join(appfolder,config["mainfile"]), active_addin_relpaths)
+        addins_to_main(os.path.join(appfolder,config["mainfile"]), active_addin_relpaths)
     else:
         active_addin_relpaths = None
 

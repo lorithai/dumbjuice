@@ -30,8 +30,8 @@ setup(
         'dumbjuice.bin': ['makensis.exe', 'plugins/inetc.dll'],
     },
     include_package_data=True,  # Ensures non-Python files are included
-    install_requires=["pillow==11.3.0", "requests"
-        # Add any external dependencies your package needs here
+    install_requires=["pillow==11.3.0", "requests" ,"beautifulsoup4==4.13.5","packaging"
+        
     ],
     python_requires=">=3.6",
     entry_points={
