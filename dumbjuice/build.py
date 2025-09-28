@@ -21,7 +21,7 @@ print(dj_version)
 ICON_NAME = "djicon.ico"
 HARDCODED_IGNORES = {"dumbjuice_build","dumbjuice_dist",".gitignore",".git",".git/","*.git"}
 default_config = {"gui":False,"ignore":None,"use_gitignore":False,"include":None,"addins":None,"mainfile":"main.py"}
-ADDINS_LIBRARY = {"ffmpeg":{"relpath":"addins/ffmpeg/bin","installer_source":"https://www.gyan.dev/ffmpeg/builds/ffmpeg-release-essentials.zip"}}
+ADDINS_LIBRARY = {"ffmpeg":{"relpath":"addins/ffmpeg/ffmpeg-8.0-essentials_build/bin","installer_source":"https://www.gyan.dev/ffmpeg/builds/ffmpeg-release-essentials.zip"}}
 
 def create_dist_zip(build_folder, dist_folder, zip_filename):
     os.makedirs(dist_folder, exist_ok=True)
